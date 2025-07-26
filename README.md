@@ -23,6 +23,18 @@ sunray/
 │   ├── mock_hardware.py    # 🆕 Mock Hardware für Entwicklung
 │   ├── buzzer_feedback.py  # 🆕 Buzzer-Feedback-System
 │   ├── buzzer_example.py   # 🆕 Buzzer-Beispiele und Demo
+│   ├── web_server.py       # 🆕 HTTP/API Server
+│   ├── static/             # 🆕 Web-Interface Dateien
+│   │   ├── index.html      # Startseite (Weiterleitung)
+│   │   ├── dashboard.html  # Dashboard-Unterseite
+│   │   ├── mapping.html    # Kartierungs-Unterseite
+│   │   ├── tasks.html      # Aufgaben-Unterseite
+│   │   ├── settings.html   # Einstellungs-Unterseite
+│   │   ├── system.html     # System-Unterseite
+│   │   ├── updates.html    # Update-Unterseite
+│   │   ├── info.html       # Info-Unterseite
+│   │   ├── style.css       # CSS-Styles
+│   │   └── app.js          # JavaScript-Funktionalität
 │   ├── ENHANCED_NAVIGATION_INTEGRATION.md # 🆕 Enhanced System Dokumentation
 │   ├── BUZZER_FEEDBACK_DOCUMENTATION.md # 🆕 Buzzer-System Dokumentation
 │   └── tests/              # Unit-Tests
@@ -57,6 +69,15 @@ sunray/
 - **Ton-Sequenzen**: Komplexe Melodien für verschiedene Systemzustände
 - **Mock-Hardware-Unterstützung**: Entwicklung ohne echten Buzzer möglich
 - **Konfigurierbare Töne**: Anpassbare Frequenzen und Dauern
+
+### 🌐 Modulares Web-Interface (NEU!)
+- **Separate Unterseiten**: Dashboard, Kartierung, Aufgaben, Einstellungen, System, Updates, Info
+- **Responsive Design**: Optimiert für Desktop und mobile Geräte
+- **Live-Daten**: Echtzeit-Updates von Sensordaten und Roboterstatus
+- **Interaktive Karten**: Live-Kartierung und Pfadvisualisierung
+- **Aufgabenverwaltung**: Planung und Überwachung von Mähaufgaben
+- **Umfassende Einstellungen**: Konfiguration aller Roboter-Parameter
+- **System-Monitoring**: Hardware-Status und Diagnose-Tools
 
 ## Installation
 
@@ -120,6 +141,31 @@ python buzzer_example.py
 ```bash
 python -m pytest tests/ -v
 ```
+
+### Web-Interface verwenden
+
+Das modulare Web-Interface ist über HTTP erreichbar:
+
+```bash
+# HTTP-Server für statische Dateien starten
+cd sunray/sunray_py/static
+python -m http.server 8080
+```
+
+**Verfügbare Unterseiten:**
+- **Dashboard** (`dashboard.html`): Hauptübersicht mit Live-Kamera, Echtzeitkarte und Schnellsteuerung
+- **Kartierung** (`mapping.html`): Kartenerstellung und -verwaltung
+- **Aufgaben** (`tasks.html`): Mähaufgaben planen und überwachen
+- **Einstellungen** (`settings.html`): Roboter-Konfiguration
+- **System** (`system.html`): Hardware-Status und Diagnose
+- **Updates** (`updates.html`): Software-Update-Verwaltung
+- **Info** (`info.html`): Hilfe und Systeminformationen
+
+**Features:**
+- Automatische Weiterleitung von `index.html` zum Dashboard
+- Globale Sensorleiste auf allen Seiten
+- Responsive Design für alle Bildschirmgrößen
+- API-Integration für Live-Daten vom Sunray-Server (Port 5000)
 
 ## Konfiguration
 

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updates - Sunray Mähroboter Control</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h2>Sunray</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="mapping.html" class="nav-link">
+                    <i class="fas fa-map"></i> Kartierung
+                </a></li>
+                <li><a href="tasks.html" class="nav-link">
+                    <i class="fas fa-tasks"></i> Aufgaben
+                </a></li>
+                <li><a href="settings.html" class="nav-link">
+                    <i class="fas fa-cog"></i> Einstellungen
+                </a></li>
+                <li><a href="system.html" class="nav-link">
+                    <i class="fas fa-server"></i> System
+                </a></li>
+                <li><a href="updates.html" class="nav-link active">
+                    <i class="fas fa-download"></i> Updates
+                </a></li>
+                <li><a href="info.html" class="nav-link">
+                    <i class="fas fa-info-circle"></i> Info
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Global Sensor Bar -->
+            <div class="global-sensor-bar">
+                <div class="sensor-bar-container">
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">🔋</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-battery-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span id="global-battery-voltage">--V</span> | 
+                                <span id="global-battery-current">--A</span>
+                            </div>
+                            <div class="sensor-bar-label">Batterie</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">📡</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-gps-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span>R: <span id="global-gps-robot-sats">--</span></span> | 
+                                <span>B: <span id="global-gps-base-sats">--</span></span>
+                            </div>
+                            <div class="sensor-bar-label">GPS</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-temp">24°C</span>
+                            <span class="sensor-bar-label">Temperatur</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value status-active" id="global-status">Bereit</span>
+                            <span class="sensor-bar-label">Status</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-runtime">2h 34m</span>
+                            <span class="sensor-bar-label">Laufzeit</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item connection-status">
+                        <div class="sensor-bar-icon">
+                            <span class="status-dot" id="connection-status"></span>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="connection-text">Verbunden</span>
+                            <span class="sensor-bar-label">Verbindung</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Updates Content -->
+            <div class="page active">
+                <header class="page-header">
+                    <h1>Software-Updates</h1>
+                    <button class="btn btn-primary" onclick="checkForUpdates()">
+                        <i class="fas fa-sync-alt"></i> Nach Updates suchen
+                    </button>
+                </header>
+
+                <div class="updates-layout">
+                    <!-- Current Version -->
+                    <div class="card current-version">
+                        <div class="card-header">
+                            <h3><i class="fas fa-info-circle"></i> Aktuelle Version</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="version-info">
+                                <div class="version-main">
+                                    <div class="version-number">v2.1.3</div>
+                                    <div class="version-status status-current">Aktuell</div>
+                                </div>
+                                <div class="version-details">
+                                    <div class="version-item">
+                                        <span class="version-label">Firmware:</span>
+                                        <span class="version-value">v1.8.2</span>
+                                    </div>
+                                    <div class="version-item">
+                                        <span class="version-label">Build:</span>
+                                        <span class="version-value">2024.01.10-stable</span>
+                                    </div>
+                                    <div class="version-item">
+                                        <span class="version-label">Installiert:</span>
+                                        <span class="version-value">10. Januar 2024</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Updates -->
+                    <div class="card available-updates">
+                        <div class="card-header">
+                            <h3><i class="fas fa-download"></i> Verfügbare Updates</h3>
+                            <div class="update-status" id="update-status">
+                                <span class="status-dot status-checking"></span>
+                                <span>Wird überprüft...</span>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="updates-list" id="updates-list">
+                                <!-- Sample Update -->
+                                <div class="update-item">
+                                    <div class="update-icon">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="update-info">
+                                        <div class="update-title">Sunray OS v2.2.0</div>
+                                        <div class="update-description">Neue Kartierungsalgorithmen, verbesserte GPS-Genauigkeit</div>
+                                        <div class="update-details">
+                                            <span class="update-size">📦 125 MB</span>
+                                            <span class="update-date">📅 15. Januar 2024</span>
+                                            <span class="update-type">🔄 Major Update</span>
+                                        </div>
+                                    </div>
+                                    <div class="update-actions">
+                                        <button class="btn btn-info" onclick="viewChangelog('v2.2.0')">
+                                            <i class="fas fa-list"></i> Changelog
+                                        </button>
+                                        <button class="btn btn-primary" onclick="installUpdate('v2.2.0')">
+                                            <i class="fas fa-download"></i> Installieren
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="update-item">
+                                    <div class="update-icon">
+                                        <i class="fas fa-bug"></i>
+                                    </div>
+                                    <div class="update-info">
+                                        <div class="update-title">Firmware v1.8.3</div>
+                                        <div class="update-description">Bugfixes für Batteriemanagement und Sensorstabilität</div>
+                                        <div class="update-details">
+                                            <span class="update-size">📦 8 MB</span>
+                                            <span class="update-date">📅 12. Januar 2024</span>
+                                            <span class="update-type">🔧 Bugfix</span>
+                                        </div>
+                                    </div>
+                                    <div class="update-actions">
+                                        <button class="btn btn-info" onclick="viewChangelog('fw1.8.3')">
+                                            <i class="fas fa-list"></i> Changelog
+                                        </button>
+                                        <button class="btn btn-primary" onclick="installUpdate('fw1.8.3')">
+                                            <i class="fas fa-download"></i> Installieren
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update History -->
+                    <div class="card update-history">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> Update-Verlauf</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="history-list">
+                                <div class="history-item">
+                                    <div class="history-date">10. Jan 2024</div>
+                                    <div class="history-info">
+                                        <div class="history-version">v2.1.3</div>
+                                        <div class="history-description">Stabilitätsverbesserungen und neue Benutzeroberfläche</div>
+                                        <div class="history-status status-success">
+                                            <i class="fas fa-check-circle"></i> Erfolgreich installiert
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="history-item">
+                                    <div class="history-date">28. Dez 2023</div>
+                                    <div class="history-info">
+                                        <div class="history-version">v2.1.2</div>
+                                        <div class="history-description">Wintermodus und erweiterte Wetterintegration</div>
+                                        <div class="history-status status-success">
+                                            <i class="fas fa-check-circle"></i> Erfolgreich installiert
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="history-item">
+                                    <div class="history-date">15. Dez 2023</div>
+                                    <div class="history-info">
+                                        <div class="history-version">v2.1.1</div>
+                                        <div class="history-description">Kritische Sicherheitsupdates</div>
+                                        <div class="history-status status-success">
+                                            <i class="fas fa-check-circle"></i> Erfolgreich installiert
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update Settings -->
+                    <div class="card update-settings">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cog"></i> Update-Einstellungen</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="settings-grid">
+                                <div class="setting-item">
+                                    <label for="auto-updates">Automatische Updates:</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="auto-updates" checked>
+                                        <label for="auto-updates"></label>
+                                    </div>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="update-channel">Update-Kanal:</label>
+                                    <select id="update-channel" class="form-select">
+                                        <option value="stable" selected>Stabil</option>
+                                        <option value="beta">Beta</option>
+                                        <option value="dev">Entwicklung</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="update-time">Update-Zeit:</label>
+                                    <select id="update-time" class="form-select">
+                                        <option value="02:00" selected>02:00 Uhr</option>
+                                        <option value="03:00">03:00 Uhr</option>
+                                        <option value="04:00">04:00 Uhr</option>
+                                    </select>
+                                </div>
+                                <div class="setting-item">
+                                    <label for="backup-before-update">Backup vor Update:</label>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="backup-before-update" checked>
+                                        <label for="backup-before-update"></label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Backup & Restore -->
+                    <div class="card backup-restore">
+                        <div class="card-header">
+                            <h3><i class="fas fa-shield-alt"></i> Backup & Wiederherstellung</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="backup-actions">
+                                <button class="btn btn-primary" onclick="createBackup()">
+                                    <i class="fas fa-save"></i> Backup erstellen
+                                </button>
+                                <button class="btn btn-secondary" onclick="restoreBackup()">
+                                    <i class="fas fa-upload"></i> Backup wiederherstellen
+                                </button>
+                                <button class="btn btn-info" onclick="downloadBackup()">
+                                    <i class="fas fa-download"></i> Backup herunterladen
+                                </button>
+                            </div>
+                            <div class="backup-list">
+                                <h4>Verfügbare Backups:</h4>
+                                <div class="backup-item">
+                                    <div class="backup-info">
+                                        <div class="backup-name">Backup_2024-01-15_14-30</div>
+                                        <div class="backup-details">125 MB • Vor Update v2.1.3</div>
+                                    </div>
+                                    <div class="backup-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="restoreSpecificBackup('2024-01-15_14-30')">
+                                            <i class="fas fa-undo"></i> Wiederherstellen
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteBackup('2024-01-15_14-30')">
+                                            <i class="fas fa-trash"></i> Löschen
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="backup-item">
+                                    <div class="backup-info">
+                                        <div class="backup-name">Backup_2024-01-10_02-00</div>
+                                        <div class="backup-details">118 MB • Automatisches Backup</div>
+                                    </div>
+                                    <div class="backup-actions">
+                                        <button class="btn btn-sm btn-secondary" onclick="restoreSpecificBackup('2024-01-10_02-00')">
+                                            <i class="fas fa-undo"></i> Wiederherstellen
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteBackup('2024-01-10_02-00')">
+                                            <i class="fas fa-trash"></i> Löschen
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Update Progress Modal -->
+    <div id="update-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="update-modal-title">Update wird installiert...</h3>
+            </div>
+            <div class="modal-body">
+                <div class="update-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="update-progress-fill"></div>
+                    </div>
+                    <div class="progress-text" id="update-progress-text">Wird heruntergeladen... 0%</div>
+                </div>
+                <div class="update-steps">
+                    <div class="update-step active" id="step-download">
+                        <i class="fas fa-download"></i> Download
+                    </div>
+                    <div class="update-step" id="step-verify">
+                        <i class="fas fa-check-circle"></i> Verifizierung
+                    </div>
+                    <div class="update-step" id="step-install">
+                        <i class="fas fa-cog"></i> Installation
+                    </div>
+                    <div class="update-step" id="step-restart">
+                        <i class="fas fa-redo"></i> Neustart
+                    </div>
+                </div>
+                <div class="update-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Bitte schalten Sie den Roboter während des Updates nicht aus!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div id="changelog-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="changelog-modal-title">Changelog</h3>
+                <button class="modal-close" onclick="closeChangelogModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="changelog-content">
+                    <!-- Changelog content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

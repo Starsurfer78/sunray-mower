@@ -8,7 +8,15 @@ class SunrayApp {
         this.robotPosition = { x: 0, y: 0, heading: 0 };
         this.updateInterval = null;
         
+        // Mapping variables
+        this.isMappingActive = false;
+        this.mappingStartTime = null;
+        this.mappingTimer = null;
+        
         this.init();
+        
+        // Load available maps when mapping page is loaded
+        this.loadAvailableMaps();
     }
 
     init() {
@@ -97,7 +105,7 @@ class SunrayApp {
                 options.body = JSON.stringify(data);
             }
 
-            const response = await fetch(`/api${endpoint}`, options);
+            const response = await fetch(`http://localhost:5000/api${endpoint}`, options);
             
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -125,13 +133,16 @@ class SunrayApp {
         this.isConnected = connected;
         const statusDot = document.getElementById('connection-status');
         const statusText = document.getElementById('connection-text');
+        const globalConnectionElement = document.getElementById('global-connection-value');
         
         if (connected) {
-            statusDot.style.background = '#4CAF50';
-            statusText.textContent = 'Verbunden';
+            if (statusDot) statusDot.style.background = '#4CAF50';
+            if (statusText) statusText.textContent = 'Verbunden';
+            if (globalConnectionElement) globalConnectionElement.textContent = 'Verbunden';
         } else {
-            statusDot.style.background = '#f44336';
-            statusText.textContent = 'Getrennt';
+            if (statusDot) statusDot.style.background = '#f44336';
+            if (statusText) statusText.textContent = 'Getrennt';
+            if (globalConnectionElement) globalConnectionElement.textContent = 'Getrennt';
         }
     }
 
@@ -160,38 +171,93 @@ class SunrayApp {
     updateSensorDisplay() {
         // Update battery level
         const batteryElement = document.getElementById('battery-level');
+        const globalBatteryElement = document.getElementById('global-battery-value');
+        const globalBatteryVoltage = document.getElementById('global-battery-voltage');
+        const globalBatteryCurrent = document.getElementById('global-battery-current');
+        
         if (this.sensorData.battery) {
-            batteryElement.textContent = `${this.sensorData.battery.level}%`;
+            const batteryLevel = `${this.sensorData.battery.level}%`;
+            if (batteryElement) batteryElement.textContent = batteryLevel;
+            if (globalBatteryElement) globalBatteryElement.textContent = batteryLevel;
+            
+            if (globalBatteryVoltage && this.sensorData.battery.voltage) {
+                globalBatteryVoltage.textContent = `${this.sensorData.battery.voltage.toFixed(1)}V`;
+            }
+            
+            if (globalBatteryCurrent && this.sensorData.battery.current) {
+                globalBatteryCurrent.textContent = `${this.sensorData.battery.current.toFixed(1)}A`;
+            }
         }
 
         // Update GPS signal
         const gpsElement = document.getElementById('gps-signal');
+        const globalGpsElement = document.getElementById('global-gps-value');
+        const globalGpsRobotSats = document.getElementById('global-gps-robot-sats');
+        const globalGpsBaseSats = document.getElementById('global-gps-base-sats');
+        
         if (this.sensorData.gps) {
             const quality = this.sensorData.gps.quality || 0;
-            gpsElement.textContent = quality > 3 ? 'Stark' : quality > 1 ? 'Mittel' : 'Schwach';
+            const gpsText = quality > 3 ? 'Stark' : quality > 1 ? 'Mittel' : 'Schwach';
+            if (gpsElement) gpsElement.textContent = gpsText;
+            if (globalGpsElement) globalGpsElement.textContent = gpsText;
+            
+            if (globalGpsRobotSats && this.sensorData.gps.satellites_robot !== undefined) {
+                globalGpsRobotSats.textContent = this.sensorData.gps.satellites_robot;
+            }
+            
+            if (globalGpsBaseSats && this.sensorData.gps.satellites_base !== undefined) {
+                globalGpsBaseSats.textContent = this.sensorData.gps.satellites_base;
+            }
         }
 
         // Update temperature
         const tempElement = document.getElementById('temperature');
+        const globalTempElement = document.getElementById('global-temp-value');
         if (this.sensorData.imu && this.sensorData.imu.temperature) {
-            tempElement.textContent = `${this.sensorData.imu.temperature.toFixed(1)}°C`;
+            const tempText = `${this.sensorData.imu.temperature.toFixed(1)}°C`;
+            if (tempElement) tempElement.textContent = tempText;
+            if (globalTempElement) globalTempElement.textContent = tempText;
         }
 
         // Update orientation
         const orientationElement = document.getElementById('orientation');
         if (this.sensorData.imu && this.sensorData.imu.heading) {
-            orientationElement.textContent = `${this.sensorData.imu.heading.toFixed(0)}°`;
+            if (orientationElement) orientationElement.textContent = `${this.sensorData.imu.heading.toFixed(0)}°`;
             this.robotPosition.heading = this.sensorData.imu.heading;
         }
+        
+        // Update global sensor bar elements
+        this.updateGlobalSensorBar();
     }
 
     async updateRobotStatus() {
         try {
             const status = await this.apiCall('/navigation/status');
-            document.getElementById('robot-status').textContent = status.state || 'Unbekannt';
-            document.getElementById('robot-mode').textContent = status.mode || 'Manuell';
+            const statusElement = document.getElementById('robot-status');
+            const modeElement = document.getElementById('robot-mode');
+            const globalStatusElement = document.getElementById('global-status-value');
+            
+            if (statusElement) statusElement.textContent = status.state || 'Unbekannt';
+            if (modeElement) modeElement.textContent = status.mode || 'Manuell';
+            if (globalStatusElement) globalStatusElement.textContent = status.state || 'Unbekannt';
         } catch (error) {
             console.error('Failed to update robot status:', error);
+        }
+    }
+    
+    updateGlobalSensorBar() {
+        // Update runtime
+        const globalRuntimeElement = document.getElementById('global-runtime-value');
+        if (globalRuntimeElement && this.sensorData.runtime) {
+            const hours = Math.floor(this.sensorData.runtime / 3600);
+            const minutes = Math.floor((this.sensorData.runtime % 3600) / 60);
+            globalRuntimeElement.textContent = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        }
+        
+        // Update connection status in global bar
+        const globalConnectionElement = document.getElementById('global-connection-value');
+        if (globalConnectionElement) {
+            globalConnectionElement.textContent = this.isConnected ? 'Verbunden' : 'Getrennt';
         }
     }
 
@@ -640,10 +706,305 @@ class SunrayApp {
         this.showToast('Karte zentriert', 'info');
     }
 
-    // Placeholder functions for future implementation
+    // Mapping Functions
     async startMapping() {
-        this.showToast('Kartierung gestartet', 'success');
+        try {
+            await this.apiCall('/mapping/start', 'POST');
+            this.isMappingActive = true;
+            this.updateMappingUI();
+            this.showToast('Kartierung gestartet', 'success');
+            this.startMappingTimer();
+        } catch (error) {
+            this.showToast('Fehler beim Starten der Kartierung', 'error');
+        }
     }
+    
+    async stopMapping() {
+        try {
+            await this.apiCall('/mapping/stop', 'POST');
+            this.isMappingActive = false;
+            this.updateMappingUI();
+            this.showToast('Kartierung beendet', 'info');
+            this.stopMappingTimer();
+        } catch (error) {
+            this.showToast('Fehler beim Beenden der Kartierung', 'error');
+        }
+    }
+    
+    async loadMap() {
+        const mapSelect = document.getElementById('map-select');
+        const selectedMap = mapSelect.value;
+        
+        if (!selectedMap) {
+            this.showToast('Bitte wählen Sie eine Karte aus', 'warning');
+            return;
+        }
+        
+        try {
+            const mapData = await this.apiCall(`/mapping/load/${selectedMap}`);
+            this.mapData = mapData;
+            this.drawMap();
+            this.showToast(`Karte '${selectedMap}' geladen`, 'success');
+        } catch (error) {
+            this.showToast('Fehler beim Laden der Karte', 'error');
+        }
+    }
+    
+    async saveMap() {
+        const saveForm = document.getElementById('save-map-form');
+        saveForm.style.display = 'block';
+    }
+    
+    async confirmSaveMap() {
+        const mapNameInput = document.getElementById('map-name-input');
+        const mapName = mapNameInput.value.trim();
+        
+        if (!mapName) {
+            this.showToast('Bitte geben Sie einen Kartennamen ein', 'warning');
+            return;
+        }
+        
+        try {
+            await this.apiCall('/mapping/save', 'POST', {
+                name: mapName,
+                data: this.mapData
+            });
+            this.showToast(`Karte '${mapName}' gespeichert`, 'success');
+            this.cancelSaveMap();
+            this.loadAvailableMaps();
+        } catch (error) {
+            this.showToast('Fehler beim Speichern der Karte', 'error');
+        }
+    }
+    
+    cancelSaveMap() {
+        const saveForm = document.getElementById('save-map-form');
+        const mapNameInput = document.getElementById('map-name-input');
+        saveForm.style.display = 'none';
+        mapNameInput.value = '';
+    }
+    
+    async deleteMap() {
+        const mapSelect = document.getElementById('map-select');
+        const selectedMap = mapSelect.value;
+        
+        if (!selectedMap) {
+            this.showToast('Bitte wählen Sie eine Karte aus', 'warning');
+            return;
+        }
+        
+        if (!confirm(`Möchten Sie die Karte '${selectedMap}' wirklich löschen?`)) {
+            return;
+        }
+        
+        try {
+            await this.apiCall(`/mapping/delete/${selectedMap}`, 'DELETE');
+            this.showToast(`Karte '${selectedMap}' gelöscht`, 'success');
+            this.loadAvailableMaps();
+        } catch (error) {
+            this.showToast('Fehler beim Löschen der Karte', 'error');
+        }
+    }
+    
+    async loadAvailableMaps() {
+        try {
+            const maps = await this.apiCall('/mapping/list');
+            const mapSelect = document.getElementById('map-select');
+            
+            mapSelect.innerHTML = '<option value="">-- Karte auswählen --</option>';
+            maps.forEach(map => {
+                const option = document.createElement('option');
+                option.value = map.name;
+                option.textContent = `${map.name} (${map.date})`;
+                mapSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load available maps:', error);
+        }
+    }
+    
+    updateMappingUI() {
+        const startBtn = document.getElementById('start-mapping-btn');
+        const stopBtn = document.getElementById('stop-mapping-btn');
+        const statusText = document.getElementById('mapping-status-text');
+        const statusDot = document.querySelector('#mapping-status .status-dot');
+        
+        if (this.isMappingActive) {
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.textContent = 'Kartierung läuft';
+            statusDot.style.background = '#4CAF50';
+        } else {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            statusText.textContent = 'Bereit';
+            statusDot.style.background = '#666';
+        }
+    }
+    
+    startMappingTimer() {
+        this.mappingStartTime = Date.now();
+        this.mappingTimer = setInterval(() => {
+            this.updateMappingTime();
+        }, 1000);
+    }
+    
+    stopMappingTimer() {
+        if (this.mappingTimer) {
+            clearInterval(this.mappingTimer);
+            this.mappingTimer = null;
+        }
+    }
+    
+    updateMappingTime() {
+        if (!this.mappingStartTime) return;
+        
+        const elapsed = Date.now() - this.mappingStartTime;
+        const hours = Math.floor(elapsed / 3600000);
+        const minutes = Math.floor((elapsed % 3600000) / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        
+        const timeElement = document.getElementById('mapping-time');
+         if (timeElement) {
+             timeElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+         }
+     }
+     
+     drawMap() {
+         const canvas = document.getElementById('mapping-canvas');
+         if (!canvas || !this.mapData) return;
+         
+         const ctx = canvas.getContext('2d');
+         const rect = canvas.getBoundingClientRect();
+         canvas.width = rect.width;
+         canvas.height = rect.height;
+         
+         // Clear canvas
+         ctx.clearRect(0, 0, canvas.width, canvas.height);
+         
+         // Draw grid
+         this.drawGrid(ctx, canvas.width, canvas.height);
+         
+         // Draw map data if available
+         if (this.mapData && this.mapData.points) {
+             this.drawMapPoints(ctx, this.mapData.points, canvas.width, canvas.height);
+         }
+         
+         // Update mapping info
+         this.updateMappingInfo();
+     }
+     
+     drawGrid(ctx, width, height) {
+         ctx.strokeStyle = '#333';
+         ctx.lineWidth = 1;
+         
+         const gridSize = 20;
+         
+         for (let x = 0; x <= width; x += gridSize) {
+             ctx.beginPath();
+             ctx.moveTo(x, 0);
+             ctx.lineTo(x, height);
+             ctx.stroke();
+         }
+         
+         for (let y = 0; y <= height; y += gridSize) {
+             ctx.beginPath();
+             ctx.moveTo(0, y);
+             ctx.lineTo(width, y);
+             ctx.stroke();
+         }
+     }
+     
+     drawMapPoints(ctx, points, width, height) {
+         if (!points || points.length === 0) return;
+         
+         // Find bounds
+         let minX = Math.min(...points.map(p => p.x));
+         let maxX = Math.max(...points.map(p => p.x));
+         let minY = Math.min(...points.map(p => p.y));
+         let maxY = Math.max(...points.map(p => p.y));
+         
+         // Add padding
+         const padding = 20;
+         const scaleX = (width - 2 * padding) / (maxX - minX || 1);
+         const scaleY = (height - 2 * padding) / (maxY - minY || 1);
+         const scale = Math.min(scaleX, scaleY);
+         
+         // Draw path
+         ctx.strokeStyle = '#4CAF50';
+         ctx.lineWidth = 2;
+         ctx.beginPath();
+         
+         points.forEach((point, index) => {
+             const x = padding + (point.x - minX) * scale;
+             const y = padding + (point.y - minY) * scale;
+             
+             if (index === 0) {
+                 ctx.moveTo(x, y);
+             } else {
+                 ctx.lineTo(x, y);
+             }
+         });
+         
+         ctx.stroke();
+         
+         // Draw start point
+         if (points.length > 0) {
+             const startPoint = points[0];
+             const x = padding + (startPoint.x - minX) * scale;
+             const y = padding + (startPoint.y - minY) * scale;
+             
+             ctx.fillStyle = '#2196F3';
+             ctx.beginPath();
+             ctx.arc(x, y, 5, 0, 2 * Math.PI);
+             ctx.fill();
+         }
+         
+         // Draw current position (last point)
+         if (points.length > 1) {
+             const currentPoint = points[points.length - 1];
+             const x = padding + (currentPoint.x - minX) * scale;
+             const y = padding + (currentPoint.y - minY) * scale;
+             
+             ctx.fillStyle = '#FF5722';
+             ctx.beginPath();
+             ctx.arc(x, y, 4, 0, 2 * Math.PI);
+             ctx.fill();
+         }
+     }
+     
+     updateMappingInfo() {
+         // Update mapped area
+         const areaElement = document.getElementById('mapped-area');
+         if (areaElement && this.mapData) {
+             const area = this.calculateMappedArea();
+             areaElement.textContent = `${area.toFixed(1)} m²`;
+         }
+         
+         // Update waypoints
+         const waypointsElement = document.getElementById('waypoints-count');
+         if (waypointsElement && this.mapData && this.mapData.points) {
+             waypointsElement.textContent = this.mapData.points.length.toString();
+         }
+     }
+     
+     calculateMappedArea() {
+         if (!this.mapData || !this.mapData.points || this.mapData.points.length < 3) {
+             return 0;
+         }
+         
+         // Simple polygon area calculation using shoelace formula
+         const points = this.mapData.points;
+         let area = 0;
+         
+         for (let i = 0; i < points.length; i++) {
+             const j = (i + 1) % points.length;
+             area += points[i].x * points[j].y;
+             area -= points[j].x * points[i].y;
+         }
+         
+         return Math.abs(area) / 2;
+     }
 
     async createZone() {
         this.showToast('Zone-Editor wird geöffnet', 'info');
@@ -675,14 +1036,18 @@ function stopMowing() { app.stopMowing(); }
 function pauseMowing() { app.pauseMowing(); }
 function returnHome() { app.returnHome(); }
 function startMapping() { app.startMapping(); }
+function stopMapping() { app.stopMapping(); }
+function loadMap() { app.loadMap(); }
+function saveMap() { app.saveMap(); }
+function confirmSaveMap() { app.confirmSaveMap(); }
+function cancelSaveMap() { app.cancelSaveMap(); }
+function deleteMap() { app.deleteMap(); }
 function createTask() { app.createZone(); }
 function saveSettings() { app.saveSettings(); }
 function refreshSystemInfo() { app.refreshSystemInfo(); }
 function checkUpdates() { app.checkUpdates(); }
 function createZone() { app.createZone(); }
 function scheduleTask() { app.createZone(); }
-function loadMap() { app.startMapping(); }
-function saveMap() { app.startMapping(); }
 function flashPico() { app.flashPico(); }
 
 // Initialize app when DOM is loaded

@@ -4,261 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sunray Mähroboter Control</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        // Automatische Weiterleitung zum Dashboard
+        window.location.href = 'dashboard.html';
+    </script>
 </head>
 <body>
     <div id="app">
-        <!-- Navigation -->
-        <nav class="sidebar">
-            <div class="logo">
-                <i class="fas fa-robot"></i>
-                <h2>Sunray</h2>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#dashboard" class="nav-link active" data-page="dashboard">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a></li>
-                <li><a href="#mapping" class="nav-link" data-page="mapping">
-                    <i class="fas fa-map"></i> Kartierung
-                </a></li>
-                <li><a href="#tasks" class="nav-link" data-page="tasks">
-                    <i class="fas fa-tasks"></i> Aufgaben
-                </a></li>
-                <li><a href="#settings" class="nav-link" data-page="settings">
-                    <i class="fas fa-cog"></i> Einstellungen
-                </a></li>
-                <li><a href="#system" class="nav-link" data-page="system">
-                    <i class="fas fa-server"></i> System
-                </a></li>
-                <li><a href="#updates" class="nav-link" data-page="updates">
-                    <i class="fas fa-download"></i> Updates
-                </a></li>
-                <li><a href="#info" class="nav-link" data-page="info">
-                    <i class="fas fa-info-circle"></i> Info
-                </a></li>
-            </ul>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Dashboard Page -->
-            <div id="dashboard-page" class="page active">
-                <header class="page-header">
-                    <h1>Dashboard</h1>
-                    <div class="status-indicator">
-                        <span class="status-dot" id="connection-status"></span>
-                        <span id="connection-text">Verbunden</span>
-                    </div>
-                </header>
-
-                <div class="dashboard-grid">
-                    <!-- Camera Feed -->
-                    <div class="card camera-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-camera"></i> Kamera</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="camera-container">
-                                <img id="camera-feed" src="/api/camera/stream" alt="Kamera nicht verfügbar">
-                                <div class="camera-overlay">
-                                    <button class="btn btn-secondary" onclick="toggleCamera()">
-                                        <i class="fas fa-play" id="camera-toggle-icon"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Map -->
-                    <div class="card map-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-map-marked-alt"></i> Karte</h3>
-                            <div class="map-controls">
-                                <button class="btn btn-sm" onclick="centerMap()">
-                                    <i class="fas fa-crosshairs"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="card-content">
-                            <div id="map-container">
-                                <canvas id="map-canvas" width="400" height="300"></canvas>
-                                <div class="map-legend">
-                                    <div class="legend-item">
-                                        <span class="legend-color robot"></span>
-                                        <span>Roboter</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-color path"></span>
-                                        <span>Pfad</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-color zone"></span>
-                                        <span>Mähzone</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Sensor Data -->
-                    <div class="card sensors-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-chart-line"></i> Sensordaten</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="sensor-grid">
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">
-                                        <i class="fas fa-battery-three-quarters"></i>
-                                    </div>
-                                    <div class="sensor-data">
-                                        <span class="sensor-label">Batterie</span>
-                                        <span class="sensor-value" id="battery-level">85%</span>
-                                    </div>
-                                </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">
-                                        <i class="fas fa-satellite-dish"></i>
-                                    </div>
-                                    <div class="sensor-data">
-                                        <span class="sensor-label">GPS Signal</span>
-                                        <span class="sensor-value" id="gps-signal">Stark</span>
-                                    </div>
-                                </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">
-                                        <i class="fas fa-thermometer-half"></i>
-                                    </div>
-                                    <div class="sensor-data">
-                                        <span class="sensor-label">Temperatur</span>
-                                        <span class="sensor-value" id="temperature">24°C</span>
-                                    </div>
-                                </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">
-                                        <i class="fas fa-compass"></i>
-                                    </div>
-                                    <div class="sensor-data">
-                                        <span class="sensor-label">Orientierung</span>
-                                        <span class="sensor-value" id="orientation">45°</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Control Panel -->
-                    <div class="card control-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-gamepad"></i> Steuerung</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="control-buttons">
-                                <button class="btn btn-success" id="start-btn" onclick="startMowing()">
-                                    <i class="fas fa-play"></i> Start
-                                </button>
-                                <button class="btn btn-danger" id="stop-btn" onclick="stopMowing()">
-                                    <i class="fas fa-stop"></i> Stop
-                                </button>
-                                <button class="btn btn-warning" id="pause-btn" onclick="pauseMowing()">
-                                    <i class="fas fa-pause"></i> Pause
-                                </button>
-                                <button class="btn btn-info" id="home-btn" onclick="returnHome()">
-                                    <i class="fas fa-home"></i> Home
-                                </button>
-                            </div>
-                            <div class="status-display">
-                                <div class="status-item">
-                                    <span class="status-label">Status:</span>
-                                    <span class="status-value" id="robot-status">Bereit</span>
-                                </div>
-                                <div class="status-item">
-                                    <span class="status-label">Modus:</span>
-                                    <span class="status-value" id="robot-mode">Manuell</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- Loading Screen -->
+        <div class="loading-screen">
+            <div class="loading-content">
+                <div class="sunray-logo">
+                    <i class="fas fa-robot"></i>
+                    <h1>Sunray</h1>
                 </div>
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                </div>
+                <p>Lade Mähroboter Control...</p>
             </div>
-
-            <!-- Mapping Page -->
-            <div id="mapping-page" class="page">
-                <header class="page-header">
-                    <h1>Kartierung</h1>
-                    <button class="btn btn-primary" onclick="startMapping()">
-                        <i class="fas fa-plus"></i> Neue Karte
-                    </button>
-                </header>
-                <!-- Mapping content will be added here -->
-            </div>
-
-            <!-- Tasks Page -->
-            <div id="tasks-page" class="page">
-                <header class="page-header">
-                    <h1>Aufgaben & Zonen</h1>
-                    <button class="btn btn-primary" onclick="createTask()">
-                        <i class="fas fa-plus"></i> Neue Aufgabe
-                    </button>
-                </header>
-                <!-- Tasks content will be added here -->
-            </div>
-
-            <!-- Settings Page -->
-            <div id="settings-page" class="page">
-                <header class="page-header">
-                    <h1>Einstellungen</h1>
-                    <button class="btn btn-success" onclick="saveSettings()">
-                        <i class="fas fa-save"></i> Speichern
-                    </button>
-                </header>
-                <!-- Settings content will be added here -->
-            </div>
-
-            <!-- System Page -->
-            <div id="system-page" class="page">
-                <header class="page-header">
-                    <h1>System Information</h1>
-                    <button class="btn btn-secondary" onclick="refreshSystemInfo()">
-                        <i class="fas fa-sync"></i> Aktualisieren
-                    </button>
-                </header>
-                <!-- System info content will be added here -->
-            </div>
-
-            <!-- Updates Page -->
-            <div id="updates-page" class="page">
-                <header class="page-header">
-                    <h1>Updates</h1>
-                    <button class="btn btn-primary" onclick="checkUpdates()">
-                        <i class="fas fa-search"></i> Nach Updates suchen
-                    </button>
-                </header>
-                <!-- Updates content will be added here -->
-            </div>
-
-            <!-- Info Page -->
-            <div id="info-page" class="page">
-                <header class="page-header">
-                    <h1>Information</h1>
-                </header>
-                <!-- Info content will be added here -->
-            </div>
-        </main>
-    </div>
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-spinner">
-            <i class="fas fa-spinner fa-spin"></i>
-            <p>Lädt...</p>
         </div>
-    </div>
-
-    <!-- Toast Notifications -->
-    <div id="toast-container" class="toast-container"></div>
-
-    <script src="/static/app.js"></script>
+     </div>
 </body>
 </html>

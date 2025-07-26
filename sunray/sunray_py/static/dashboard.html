@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sunray Mähroboter Control</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h2>Sunray</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link active">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="mapping.html" class="nav-link">
+                    <i class="fas fa-map"></i> Kartierung
+                </a></li>
+                <li><a href="tasks.html" class="nav-link">
+                    <i class="fas fa-tasks"></i> Aufgaben
+                </a></li>
+                <li><a href="settings.html" class="nav-link">
+                    <i class="fas fa-cog"></i> Einstellungen
+                </a></li>
+                <li><a href="system.html" class="nav-link">
+                    <i class="fas fa-server"></i> System
+                </a></li>
+                <li><a href="updates.html" class="nav-link">
+                    <i class="fas fa-download"></i> Updates
+                </a></li>
+                <li><a href="info.html" class="nav-link">
+                    <i class="fas fa-info-circle"></i> Info
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Global Sensor Bar -->
+            <div class="global-sensor-bar">
+                <div class="sensor-bar-container">
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">🔋</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-battery-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span id="global-battery-voltage">--V</span> | 
+                                <span id="global-battery-current">--A</span>
+                            </div>
+                            <div class="sensor-bar-label">Batterie</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">📡</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-gps-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span>R: <span id="global-gps-robot-sats">--</span></span> | 
+                                <span>B: <span id="global-gps-base-sats">--</span></span>
+                            </div>
+                            <div class="sensor-bar-label">GPS</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-temp">24°C</span>
+                            <span class="sensor-bar-label">Temperatur</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value status-active" id="global-status">Bereit</span>
+                            <span class="sensor-bar-label">Status</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-runtime">2h 34m</span>
+                            <span class="sensor-bar-label">Laufzeit</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item connection-status">
+                        <div class="sensor-bar-icon">
+                            <span class="status-dot" id="connection-status"></span>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="connection-text">Verbunden</span>
+                            <span class="sensor-bar-label">Verbindung</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="page active">
+                <header class="page-header">
+                    <h1>Dashboard</h1>
+                </header>
+
+                <div class="dashboard-grid">
+                    <!-- Camera Feed -->
+                    <div class="card camera-card bento-large">
+                        <div class="card-header">
+                            <h3><i class="fas fa-camera"></i> Live Kamera</h3>
+                            <div class="card-actions">
+                                <button class="btn btn-sm btn-secondary" onclick="toggleCamera()">
+                                    <i class="fas fa-play" id="camera-toggle-icon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div class="camera-container">
+                                <img id="camera-feed" src="http://localhost:5000/api/camera/stream" alt="Kamera nicht verfügbar">
+                                <div class="camera-overlay">
+                                    <div class="camera-status">
+                                        <span class="status-dot online"></span>
+                                        <span>Live</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Map -->
+                    <div class="card map-card bento-large">
+                        <div class="card-header">
+                            <h3><i class="fas fa-map-marked-alt"></i> Echtzeit Karte</h3>
+                            <div class="map-controls">
+                                <button class="btn btn-sm btn-info" onclick="centerMap()">
+                                    <i class="fas fa-crosshairs"></i> Zentrieren
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div id="map-container">
+                                <canvas id="map-canvas" width="400" height="300"></canvas>
+                                <div class="map-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-color robot"></span>
+                                        <span>Roboter</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color path"></span>
+                                        <span>Pfad</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color zone"></span>
+                                        <span>Mähzone</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Status -->
+                    <div class="card status-card bento-medium">
+                        <div class="card-header">
+                            <h3><i class="fas fa-info-circle"></i> Status</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="status-display">
+                                <div class="status-item">
+                                    <span class="status-label">Betrieb:</span>
+                                    <span class="status-value status-active" id="robot-status">Bereit</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Modus:</span>
+                                    <span class="status-value" id="robot-mode">Automatisch</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Laufzeit:</span>
+                                    <span class="status-value" id="runtime">2h 34m</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sensor Data -->
+                    <div class="card sensors-card bento-medium">
+                        <div class="card-header">
+                            <h3><i class="fas fa-chart-line"></i> Sensoren</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="sensor-grid">
+                                <div class="sensor-item">
+                                    <div class="sensor-icon">🔋</div>
+                                    <div class="sensor-data">
+                                        <div class="sensor-value" id="battery-level">85%</div>
+                                        <div class="sensor-label">Batterie</div>
+                                    </div>
+                                </div>
+                                <div class="sensor-item">
+                                    <div class="sensor-icon">📡</div>
+                                    <div class="sensor-data">
+                                        <div class="sensor-value" id="gps-quality">RTK Fix</div>
+                                        <div class="sensor-label">GPS</div>
+                                    </div>
+                                </div>
+                                <div class="sensor-item">
+                                    <div class="sensor-icon">🌡️</div>
+                                    <div class="sensor-data">
+                                        <div class="sensor-value" id="temperature">24°C</div>
+                                        <div class="sensor-label">Temperatur</div>
+                                    </div>
+                                </div>
+                                <div class="sensor-item">
+                                    <div class="sensor-icon">⚡</div>
+                                    <div class="sensor-data">
+                                        <div class="sensor-value" id="power-consumption">45W</div>
+                                        <div class="sensor-label">Verbrauch</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="card actions-card bento-medium">
+                        <div class="card-header">
+                            <h3><i class="fas fa-bolt"></i> Schnellaktionen</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="action-buttons">
+                                <button class="btn btn-success" onclick="startMowing()">
+                                    <i class="fas fa-play"></i> Mähen starten
+                                </button>
+                                <button class="btn btn-warning" onclick="pauseMowing()">
+                                    <i class="fas fa-pause"></i> Pausieren
+                                </button>
+                                <button class="btn btn-danger" onclick="stopMowing()">
+                                    <i class="fas fa-stop"></i> Stoppen
+                                </button>
+                                <button class="btn btn-info" onclick="returnToBase()">
+                                    <i class="fas fa-home"></i> Zur Basis
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

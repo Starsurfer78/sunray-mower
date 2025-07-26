@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Info - Sunray Mähroboter Control</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <div class="logo">
+                <i class="fas fa-robot"></i>
+                <h2>Sunray</h2>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a></li>
+                <li><a href="mapping.html" class="nav-link">
+                    <i class="fas fa-map"></i> Kartierung
+                </a></li>
+                <li><a href="tasks.html" class="nav-link">
+                    <i class="fas fa-tasks"></i> Aufgaben
+                </a></li>
+                <li><a href="settings.html" class="nav-link">
+                    <i class="fas fa-cog"></i> Einstellungen
+                </a></li>
+                <li><a href="system.html" class="nav-link">
+                    <i class="fas fa-server"></i> System
+                </a></li>
+                <li><a href="updates.html" class="nav-link">
+                    <i class="fas fa-download"></i> Updates
+                </a></li>
+                <li><a href="info.html" class="nav-link active">
+                    <i class="fas fa-info-circle"></i> Info
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Global Sensor Bar -->
+            <div class="global-sensor-bar">
+                <div class="sensor-bar-container">
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">🔋</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-battery-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span id="global-battery-voltage">--V</span> | 
+                                <span id="global-battery-current">--A</span>
+                            </div>
+                            <div class="sensor-bar-label">Batterie</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">📡</div>
+                        <div class="sensor-bar-data">
+                            <div class="sensor-bar-value" id="global-gps-value">--</div>
+                            <div class="sensor-bar-sub-values">
+                                <span>R: <span id="global-gps-robot-sats">--</span></span> | 
+                                <span>B: <span id="global-gps-base-sats">--</span></span>
+                            </div>
+                            <div class="sensor-bar-label">GPS</div>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-thermometer-half"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-temp">24°C</span>
+                            <span class="sensor-bar-label">Temperatur</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value status-active" id="global-status">Bereit</span>
+                            <span class="sensor-bar-label">Status</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item">
+                        <div class="sensor-bar-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="global-runtime">2h 34m</span>
+                            <span class="sensor-bar-label">Laufzeit</span>
+                        </div>
+                    </div>
+                    <div class="sensor-bar-item connection-status">
+                        <div class="sensor-bar-icon">
+                            <span class="status-dot" id="connection-status"></span>
+                        </div>
+                        <div class="sensor-bar-data">
+                            <span class="sensor-bar-value" id="connection-text">Verbunden</span>
+                            <span class="sensor-bar-label">Verbindung</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Content -->
+            <div class="page active">
+                <header class="page-header">
+                    <h1>Informationen & Hilfe</h1>
+                </header>
+
+                <div class="info-layout">
+                    <!-- About Sunray -->
+                    <div class="card about-sunray">
+                        <div class="card-header">
+                            <h3><i class="fas fa-robot"></i> Über Sunray</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="about-content">
+                                <div class="sunray-logo">
+                                    <i class="fas fa-robot"></i>
+                                    <h2>Sunray Mähroboter</h2>
+                                </div>
+                                <div class="about-text">
+                                    <p>Sunray ist ein Open-Source-Mähroboter-Projekt, das auf präziser GPS-Navigation und fortschrittlichen Algorithmen basiert. Entwickelt für maximale Effizienz und Zuverlässigkeit in der autonomen Rasenpflege.</p>
+                                    
+                                    <div class="features-grid">
+                                        <div class="feature-item">
+                                            <i class="fas fa-satellite-dish"></i>
+                                            <span>RTK-GPS Navigation</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <i class="fas fa-map"></i>
+                                            <span>Intelligente Kartierung</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <i class="fas fa-shield-alt"></i>
+                                            <span>Erweiterte Sicherheit</span>
+                                        </div>
+                                        <div class="feature-item">
+                                            <i class="fas fa-wifi"></i>
+                                            <span>WLAN-Konnektivität</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Help -->
+                    <div class="card quick-help">
+                        <div class="card-header">
+                            <h3><i class="fas fa-question-circle"></i> Schnellhilfe</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="help-categories">
+                                <div class="help-category" onclick="showHelpSection('getting-started')">
+                                    <i class="fas fa-play-circle"></i>
+                                    <h4>Erste Schritte</h4>
+                                    <p>Grundlegende Einrichtung und Inbetriebnahme</p>
+                                </div>
+                                <div class="help-category" onclick="showHelpSection('troubleshooting')">
+                                    <i class="fas fa-tools"></i>
+                                    <h4>Fehlerbehebung</h4>
+                                    <p>Häufige Probleme und Lösungen</p>
+                                </div>
+                                <div class="help-category" onclick="showHelpSection('maintenance')">
+                                    <i class="fas fa-wrench"></i>
+                                    <h4>Wartung</h4>
+                                    <p>Pflege und Wartungshinweise</p>
+                                </div>
+                                <div class="help-category" onclick="showHelpSection('safety')">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <h4>Sicherheit</h4>
+                                    <p>Sicherheitsrichtlinien und Vorsichtsmaßnahmen</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Technical Specifications -->
+                    <div class="card tech-specs">
+                        <div class="card-header">
+                            <h3><i class="fas fa-microchip"></i> Technische Daten</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="specs-grid">
+                                <div class="spec-category">
+                                    <h4>Hardware</h4>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Prozessor:</span>
+                                        <span class="spec-value">ARM Cortex-A72 @ 1.5GHz</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">RAM:</span>
+                                        <span class="spec-value">1GB LPDDR4</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Speicher:</span>
+                                        <span class="spec-value">16GB eMMC</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">GPS:</span>
+                                        <span class="spec-value">RTK-fähig, Multi-Band</span>
+                                    </div>
+                                </div>
+                                <div class="spec-category">
+                                    <h4>Mechanik</h4>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Schnittbreite:</span>
+                                        <span class="spec-value">28 cm</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Schnitthöhe:</span>
+                                        <span class="spec-value">20-80 mm</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Steigung:</span>
+                                        <span class="spec-value">bis 35°</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Gewicht:</span>
+                                        <span class="spec-value">12 kg</span>
+                                    </div>
+                                </div>
+                                <div class="spec-category">
+                                    <h4>Batterie</h4>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Typ:</span>
+                                        <span class="spec-value">Li-Ion 18650</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Kapazität:</span>
+                                        <span class="spec-value">5000 mAh</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Spannung:</span>
+                                        <span class="spec-value">25.2V nominal</span>
+                                    </div>
+                                    <div class="spec-item">
+                                        <span class="spec-label">Laufzeit:</span>
+                                        <span class="spec-value">3-5 Stunden</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact & Support -->
+                    <div class="card contact-support">
+                        <div class="card-header">
+                            <h3><i class="fas fa-headset"></i> Kontakt & Support</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="contact-grid">
+                                <div class="contact-item">
+                                    <i class="fas fa-globe"></i>
+                                    <div class="contact-info">
+                                        <h4>Website</h4>
+                                        <a href="https://github.com/Ardumower/Sunray" target="_blank">github.com/Ardumower/Sunray</a>
+                                    </div>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fas fa-comments"></i>
+                                    <div class="contact-info">
+                                        <h4>Community Forum</h4>
+                                        <a href="https://forum.ardumower.de" target="_blank">forum.ardumower.de</a>
+                                    </div>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fab fa-discord"></i>
+                                    <div class="contact-info">
+                                        <h4>Discord</h4>
+                                        <a href="#" target="_blank">Sunray Community</a>
+                                    </div>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fas fa-book"></i>
+                                    <div class="contact-info">
+                                        <h4>Dokumentation</h4>
+                                        <a href="#" target="_blank">Benutzerhandbuch</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- License & Credits -->
+                    <div class="card license-credits">
+                        <div class="card-header">
+                            <h3><i class="fas fa-certificate"></i> Lizenz & Credits</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="license-info">
+                                <h4>Open Source Lizenz</h4>
+                                <p>Sunray ist unter der GPL v3 Lizenz veröffentlicht. Der Quellcode ist frei verfügbar und kann modifiziert werden.</p>
+                                
+                                <h4>Entwickler & Mitwirkende</h4>
+                                <div class="credits-list">
+                                    <div class="credit-item">
+                                        <strong>Alexander Grau</strong> - Hauptentwickler
+                                    </div>
+                                    <div class="credit-item">
+                                        <strong>Ardumower Community</strong> - Beiträge und Tests
+                                    </div>
+                                    <div class="credit-item">
+                                        <strong>Open Source Libraries</strong> - Verschiedene Komponenten
+                                    </div>
+                                </div>
+                                
+                                <h4>Verwendete Technologien</h4>
+                                <div class="tech-list">
+                                    <span class="tech-tag">C++</span>
+                                    <span class="tech-tag">Arduino</span>
+                                    <span class="tech-tag">Python</span>
+                                    <span class="tech-tag">JavaScript</span>
+                                    <span class="tech-tag">HTML5</span>
+                                    <span class="tech-tag">CSS3</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Version Information -->
+                    <div class="card version-info">
+                        <div class="card-header">
+                            <h3><i class="fas fa-tag"></i> Versions-Informationen</h3>
+                        </div>
+                        <div class="card-content">
+                            <div class="version-details">
+                                <div class="version-item">
+                                    <span class="version-label">Sunray OS:</span>
+                                    <span class="version-value">v2.1.3</span>
+                                </div>
+                                <div class="version-item">
+                                    <span class="version-label">Firmware:</span>
+                                    <span class="version-value">v1.8.2</span>
+                                </div>
+                                <div class="version-item">
+                                    <span class="version-label">Web Interface:</span>
+                                    <span class="version-value">v1.2.1</span>
+                                </div>
+                                <div class="version-item">
+                                    <span class="version-label">Build:</span>
+                                    <span class="version-value">2024.01.10-stable</span>
+                                </div>
+                                <div class="version-item">
+                                    <span class="version-label">Kernel:</span>
+                                    <span class="version-value">Linux 5.15.0-sunray</span>
+                                </div>
+                                <div class="version-item">
+                                    <span class="version-label">Hardware Rev:</span>
+                                    <span class="version-value">PCB v3.2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Help Modal -->
+    <div id="help-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="help-modal-title">Hilfe</h3>
+                <button class="modal-close" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="help-content">
+                    <!-- Help content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
