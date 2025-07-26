@@ -1,28 +1,34 @@
 #!/usr/bin/env python3
 """
-Beispiel-Integration des Enhanced Escape Systems in die Hauptschleife.
-Zeigt, wie Sensorfusion und Self-Learning in das bestehende System integriert werden.
+Integration Example: Enhanced Escape System in Sunray Navigation
+Zeigt wie das Enhanced Escape System in die bestehende Sunray Navigation integriert wird
 """
 
 import time
 import json
-from typing import Dict, Any
+import logging
+from typing import Dict, Any, Optional, List
+from dataclasses import dataclass
 
-# Bestehende Imports
-from motor import Motor
+# Sunray Imports
+from op import Operation, MowOp, EscapeForwardOp, SmartBumperEscapeOp
 from obstacle_detection import ObstacleDetector
-from state_estimator import StateEstimator
-from imu import IMUSensor
-from rtk_gps import RTKGPS
-from events import Logger, EventCode
-from op import Operation, MowOp, IdleOp
+from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEscapeOp
+from mock_hardware import get_hardware_or_mock, is_hardware_available
 
-# Neue Enhanced Escape Imports
-from enhanced_escape_operations import (
-    SensorFusion, 
-    LearningSystem, 
-    AdaptiveEscapeOp
-)
+# Hardware Import mit Fallback
+try:
+    from imu import IMUSensor
+    from gps_module import GPSModule
+    from pico_comm import PicoComm
+    from motor import Motor
+    from state_estimator import StateEstimator
+    from rtk_gps import RTKGPS
+    from events import Logger, EventCode
+    HARDWARE_AVAILABLE = True
+except (ImportError, NotImplementedError):
+    print("Hardware Module nicht verfügbar, verwende Mock Hardware")
+    HARDWARE_AVAILABLE = False
 
 class EnhancedSunrayController:
     """
@@ -31,12 +37,22 @@ class EnhancedSunrayController:
     """
     
     def __init__(self, config_file: str = 'config.json'):
-        # Bestehende Komponenten
-        self.motor = Motor()
+        # Hardware Setup mit Fallback
+        if HARDWARE_AVAILABLE:
+            try:
+                self.motor = Motor()
+                self.imu = IMUSensor()
+                self.gps = RTKGPS()
+                self.state_estimator = StateEstimator()
+                print("Echte Hardware initialisiert")
+            except Exception as e:
+                print(f"Hardware Initialisierung fehlgeschlagen: {e}")
+                self._init_mock_hardware()
+        else:
+            self._init_mock_hardware()
+            
+        # Gemeinsame Komponenten
         self.obstacle_detector = ObstacleDetector()
-        self.state_estimator = StateEstimator()
-        self.imu = IMUSensor()
-        self.gps = RTKGPS()
         
         # Enhanced Escape Komponenten
         self.sensor_fusion = SensorFusion()
@@ -47,7 +63,10 @@ class EnhancedSunrayController:
         self.enhanced_escape_enabled = self.config.get('enhanced_escape', {}).get('enabled', True)
         
         # Zustandsvariablen
-        self.current_op = IdleOp("idle")
+        self.current_op = None
+        self.current_operation = None
+        self.enhanced_mode_enabled = True
+        self.learning_enabled = True
         self.last_escape_time = 0
         self.escape_cooldown = 5.0  # Sekunden zwischen Ausweichmanövern
         
@@ -56,11 +75,47 @@ class EnhancedSunrayController:
             'total_escapes': 0,
             'enhanced_escapes': 0,
             'traditional_escapes': 0,
-            'escape_success_rate': 0.0
+            'learning_updates': 0,
+            'sensor_fusion_updates': 0,
+            'hardware_type': 'real' if HARDWARE_AVAILABLE else 'mock'
         }
         
-        Logger.event(EventCode.SYSTEM_STARTED, 
-                    f"Enhanced Sunray Controller initialized (Enhanced Escape: {self.enhanced_escape_enabled})")
+    def _init_mock_hardware(self):
+        """Initialisiert Mock Hardware für Entwicklung"""
+        print("Initialisiere Mock Hardware für Entwicklung...")
+        mock_hw = get_hardware_or_mock()
+        self.motor = mock_hw.get('motor')  # Wird später implementiert
+        self.imu = mock_hw['imu']
+        self.gps = mock_hw['gps']
+        self.pico = mock_hw['pico']
+        
+        # Mock State Estimator
+        class MockStateEstimator:
+            def __init__(self):
+                self.x = 0.0
+                self.y = 0.0
+                self.heading = 0.0
+                
+            def compute_robot_state(self, *args, **kwargs):
+                return {
+                    'x': self.x,
+                    'y': self.y,
+                    'heading': self.heading,
+                    'tilt_warning': False
+                }
+                
+            def get_position(self):
+                return (self.x, self.y, self.heading)
+                
+        self.state_estimator = MockStateEstimator()
+        
+        # Mock Logger
+        class MockLogger:
+            def log(self, event_code, message):
+                print(f"LOG [{event_code}]: {message}")
+                
+        self.logger = MockLogger()
+        print("Mock Hardware erfolgreich initialisiert")
     
     def _load_config(self, config_file: str) -> Dict:
         """Lädt Konfiguration mit Enhanced Escape Einstellungen."""
@@ -91,12 +146,12 @@ class EnhancedSunrayController:
             
             return config
         except (FileNotFoundError, json.JSONDecodeError) as e:
-            Logger.event(EventCode.ERROR, f"Config loading failed: {e}")
+            self.logger.log("ERROR", f"Config loading failed: {e}")
             return {'enhanced_escape': {'enabled': False}}
     
     def run_main_loop(self):
         """Hauptschleife mit Enhanced Escape Integration."""
-        Logger.event(EventCode.SYSTEM_STARTED, "Starting enhanced main loop")
+        self.logger.log("SYSTEM_STARTED", "Starting enhanced main loop")
         
         try:
             while True:
@@ -143,23 +198,94 @@ class EnhancedSunrayController:
                     time.sleep(0.1 - loop_duration)
                 
         except KeyboardInterrupt:
-            Logger.event(EventCode.SYSTEM_STOPPED, "Main loop interrupted by user")
+            self.logger.log("SYSTEM_STOPPED", "Main loop interrupted by user")
         except Exception as e:
-            Logger.event(EventCode.ERROR, f"Main loop error: {e}")
+            self.logger.log("ERROR", f"Main loop error: {e}")
         finally:
             self._cleanup()
     
     def _collect_sensor_data(self) -> Dict[str, Any]:
         """Sammelt alle verfügbaren Sensordaten."""
+        # Mock-Hardware Unterstützung
+        if hasattr(self.imu, 'update'):
+            self.imu.update()
+        if hasattr(self.gps, 'update'):
+            self.gps.update()
+            
         return {
-            'imu_data': self.imu.read(),
-            'gps_data': self.gps.read() or {},
-            'pico_data': self.motor.get_pico_data(),
-            'odometry_data': self.motor.get_odometry_data(),
-            'current_data': self.motor.get_current_data(),
-            'motor_status': self.motor.get_status(),
+            'imu_data': self._get_imu_data(),
+            'gps_data': self._get_gps_data(),
+            'pico_data': self._get_pico_data(),
+            'odometry_data': self._get_odometry_data(),
+            'current_data': self._get_current_data(),
+            'motor_status': self._get_motor_status(),
             'timestamp': time.time()
         }
+        
+    def _get_imu_data(self) -> Dict:
+        """Holt IMU Daten mit Mock-Unterstützung"""
+        if hasattr(self.imu, 'read'):
+            return self.imu.read()
+        else:
+            return {
+                'yaw': self.imu.yaw,
+                'pitch': self.imu.pitch,
+                'roll': self.imu.roll,
+                'accel_x': self.imu.accel_x,
+                'accel_y': self.imu.accel_y,
+                'accel_z': self.imu.accel_z
+            }
+            
+    def _get_gps_data(self) -> Dict:
+        """Holt GPS Daten mit Mock-Unterstützung"""
+        if hasattr(self.gps, 'read'):
+            return self.gps.read() or {}
+        else:
+            return {
+                'latitude': self.gps.latitude,
+                'longitude': self.gps.longitude,
+                'altitude': self.gps.altitude,
+                'speed': self.gps.speed,
+                'course': self.gps.course,
+                'has_fix': self.gps.has_fix
+            }
+            
+    def _get_pico_data(self) -> Dict:
+        """Holt Pico Daten mit Mock-Unterstützung"""
+        if hasattr(self.motor, 'get_pico_data'):
+            return self.motor.get_pico_data()
+        elif hasattr(self, 'pico'):
+            return self.pico.get_sensor_data()
+        else:
+            return {'bumper_left': False, 'bumper_right': False}
+            
+    def _get_odometry_data(self) -> Dict:
+        """Holt Odometrie Daten mit Mock-Unterstützung"""
+        if hasattr(self.motor, 'get_odometry_data'):
+            return self.motor.get_odometry_data()
+        else:
+            return {'distance': 0.0, 'heading_change': 0.0}
+            
+    def _get_current_data(self) -> Dict:
+        """Holt Strom Daten mit Mock-Unterstützung"""
+        if hasattr(self.motor, 'get_current_data'):
+            return self.motor.get_current_data()
+        elif hasattr(self, 'pico'):
+            data = self.pico.get_sensor_data()
+            return {
+                'current_left': data.get('current_left', 0.5),
+                'current_right': data.get('current_right', 0.5),
+                'current_mow': data.get('current_mow', 0.3)
+            }
+        else:
+            return {'current_left': 0.5, 'current_right': 0.5, 'current_mow': 0.3}
+            
+    def _get_motor_status(self) -> Dict:
+        """Holt Motor Status mit Mock-Unterstützung"""
+        if hasattr(self.motor, 'get_status'):
+            return self.motor.get_status()
+        else:
+            return {'status': 'mock', 'left_speed': 0, 'right_speed': 0, 'mow_speed': 0}
     
     def _handle_obstacle_detection(self, sensor_data: Dict, robot_state: Dict):
         """Behandelt Hinderniserkennung mit Enhanced Escape System."""
@@ -167,7 +293,7 @@ class EnhancedSunrayController:
         
         # Cooldown prüfen
         if current_time - self.last_escape_time < self.escape_cooldown:
-            Logger.event(EventCode.OBSTACLE_DETECTED, "Obstacle detected but in cooldown period")
+            self.logger.log("OBSTACLE_DETECTED", "Obstacle detected but in cooldown period")
             return
         
         self.last_escape_time = current_time
@@ -180,7 +306,7 @@ class EnhancedSunrayController:
                 self.stats['enhanced_escapes'] += 1
                 return
             else:
-                Logger.event(EventCode.WARNING, "Enhanced escape failed, falling back to traditional")
+                self.logger.log("WARNING", "Enhanced escape failed, falling back to traditional")
         
         # Fallback auf traditionelle Ausweichmanöver
         self._execute_traditional_escape(sensor_data)
@@ -203,7 +329,7 @@ class EnhancedSunrayController:
             # Mindestvertrauen prüfen
             min_confidence = self.config['enhanced_escape']['escape_strategies']['adaptive_escape_threshold']
             if confidence < min_confidence:
-                Logger.event(EventCode.WARNING, 
+                self.logger.log("WARNING", 
                            f"Low confidence ({confidence:.2f}) for enhanced escape")
                 return False
             
@@ -229,13 +355,13 @@ class EnhancedSunrayController:
             self.current_op = AdaptiveEscapeOp("enhanced_escape", self.motor)
             self.current_op.start(escape_params)
             
-            Logger.event(EventCode.OBSTACLE_DETECTED, 
+            self.logger.log("OBSTACLE_DETECTED", 
                         f"Enhanced escape started: {strategy} (confidence: {confidence:.2f})")
             
             return True
             
         except Exception as e:
-            Logger.event(EventCode.ERROR, f"Enhanced escape failed: {e}")
+            self.logger.log("ERROR", f"Enhanced escape failed: {e}")
             return False
     
     def _execute_traditional_escape(self, sensor_data: Dict):
@@ -259,11 +385,11 @@ class EnhancedSunrayController:
                 'right_bumper': right_bumper
             }
             self.current_op = SmartBumperEscapeOp("smart_bumper_escape", self.motor)
-            Logger.event(EventCode.OBSTACLE_DETECTED, "Traditional smart bumper escape started")
+            self.logger.log("OBSTACLE_DETECTED", "Traditional smart bumper escape started")
         else:
             # Forward Escape für andere Hindernisse
             self.current_op = EscapeForwardOp("escape_forward", self.motor)
-            Logger.event(EventCode.OBSTACLE_DETECTED, "Traditional forward escape started")
+            self.logger.log("OBSTACLE_DETECTED", "Traditional forward escape started")
         
         self.current_op.start(escape_params if 'escape_params' in locals() else {})
     
@@ -276,16 +402,17 @@ class EnhancedSunrayController:
         self.motor.stop_immediately()
         
         # Idle-Operation starten
+        from op import IdleOp
         self.current_op = IdleOp("tilt_safety")
         self.current_op.start()
         
-        Logger.event(EventCode.SAFETY_STOP, "Robot tilted - safety stop activated")
+        self.logger.log("SAFETY_STOP", "Robot tilted - safety stop activated")
     
     def _start_mowing(self):
         """Startet Mähoperation."""
         self.current_op = MowOp("mow", self.motor)
         self.current_op.start()
-        Logger.event(EventCode.OPERATION_STARTED, "Mowing operation started")
+        self.logger.log("OPERATION_STARTED", "Mowing operation started")
     
     def _update_statistics(self):
         """Aktualisiert Systemstatistiken."""
@@ -300,20 +427,22 @@ class EnhancedSunrayController:
     
     def _cleanup(self):
         """Aufräumarbeiten beim Beenden."""
-        Logger.event(EventCode.SYSTEM_STOPPED, "Cleaning up Enhanced Sunray Controller")
+        self.logger.log("SYSTEM_STOPPED", "Cleaning up Enhanced Sunray Controller")
         
         # Aktuelle Operation stoppen
         if self.current_op and self.current_op.active:
             self.current_op.stop()
         
         # Motoren stoppen
-        self.motor.stop_immediately()
+        if hasattr(self.motor, 'stop_immediately'):
+            self.motor.stop_immediately()
         
         # Statistiken ausgeben
         self._print_final_statistics()
         
         # GPS-Verbindung schließen
-        self.gps.close()
+        if hasattr(self.gps, 'close'):
+            self.gps.close()
     
     def _print_final_statistics(self):
         """Gibt finale Statistiken aus."""
@@ -335,8 +464,8 @@ class EnhancedSunrayController:
         status = {
             'current_operation': self.current_op.name if self.current_op else 'none',
             'enhanced_escape_enabled': self.enhanced_escape_enabled,
-            'motor_status': self.motor.get_status(),
-            'obstacle_status': self.obstacle_detector.get_status(),
+            'motor_status': self.motor.get_status() if hasattr(self.motor, 'get_status') else {'status': 'mock'},
+            'obstacle_status': self.obstacle_detector.get_status() if hasattr(self.obstacle_detector, 'get_status') else {'status': 'active'},
             'statistics': self.stats.copy()
         }
         
@@ -348,14 +477,14 @@ class EnhancedSunrayController:
     def enable_enhanced_escape(self, enabled: bool):
         """Aktiviert/deaktiviert Enhanced Escape System."""
         self.enhanced_escape_enabled = enabled
-        Logger.event(EventCode.SYSTEM_CONFIG_CHANGED, 
+        self.logger.log("SYSTEM_CONFIG_CHANGED", 
                     f"Enhanced Escape {'enabled' if enabled else 'disabled'}")
     
     def reset_learning_data(self):
         """Setzt Learning-Daten zurück."""
         if self.enhanced_escape_enabled:
             self.learning_system = LearningSystem()
-            Logger.event(EventCode.SYSTEM_CONFIG_CHANGED, "Learning data reset")
+            self.logger.log("SYSTEM_CONFIG_CHANGED", "Learning data reset")
 
 # Beispiel für HTTP-API-Integration
 def create_enhanced_api_endpoints(app, controller: EnhancedSunrayController):

@@ -1,0 +1,82 @@
+{
+  "enhanced_escape_system": {
+    "enabled": true,
+    "sensor_fusion": {
+      "weights": {
+        "gps": 0.3,
+        "imu": 0.4,
+        "odometry": 0.2,
+        "current": 0.1
+      },
+      "adaptive_weighting": {
+        "enabled": true,
+        "learning_rate": 0.1,
+        "confidence_threshold": 0.7
+      },
+      "confidence_thresholds": {
+        "gps_min_speed": 0.3,
+        "imu_max_tilt": 25.0,
+        "current_spike_threshold": 2.0
+      }
+    },
+    "learning_system": {
+      "enabled": true,
+      "learning_parameters": {
+        "learning_rate": 0.05,
+        "memory_size": 1000,
+        "min_samples_for_learning": 10
+      },
+      "context_classification": {
+        "slope_threshold": 15.0,
+        "wet_grass_current_threshold": 1.5,
+        "dense_vegetation_current_threshold": 2.0,
+        "soft_ground_slip_threshold": 0.3
+      },
+      "strategy_optimization": {
+        "success_weight": 1.0,
+        "time_weight": 0.3,
+        "energy_weight": 0.2
+      }
+    },
+    "escape_strategies": {
+      "adaptive_reverse_turn": {
+        "reverse_distance": 0.5,
+        "turn_angle_range": [45, 135],
+        "speed_factor": 0.7
+      },
+      "smart_side_escape": {
+        "side_distance": 0.8,
+        "approach_angle": 30,
+        "retry_attempts": 3
+      },
+      "spiral_escape": {
+        "spiral_radius": 1.0,
+        "spiral_increment": 0.2,
+        "max_spirals": 3
+      },
+      "slope_descent": {
+        "descent_angle": 10,
+        "safety_margin": 0.3,
+        "max_slope": 20.0
+      }
+    },
+    "safety": {
+      "max_escape_time": 30.0,
+      "emergency_stop_tilt": 30.0,
+      "fallback_enabled": true,
+      "max_consecutive_failures": 3
+    },
+    "monitoring": {
+      "telemetry_interval": 1.0,
+      "statistics_interval": 10.0,
+      "log_level": "INFO",
+      "performance_tracking": true
+    }
+  },
+  "integration": {
+    "override_traditional_escape": true,
+    "fallback_to_traditional": true,
+    "learning_from_traditional": true,
+    "api_endpoints_enabled": true
+  }
+}

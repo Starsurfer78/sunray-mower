@@ -1,0 +1,28 @@
+{
+  "enhanced_escape": {
+    "enabled": true,
+    "learning_enabled": true,
+    "learning_file": "escape_learning_data.json",
+    "min_samples_for_learning": 5,
+    "learning_rate": 0.1,
+    "sensor_fusion": {
+      "gps_weight": 0.4,
+      "imu_weight": 0.3,
+      "odometry_weight": 0.2,
+      "current_weight": 0.1
+    },
+    "escape_strategies": {
+      "adaptive_escape_threshold": 0.7,
+      "fallback_to_traditional": true,
+      "max_learning_attempts": 100
+    }
+  },
+  "motor": {
+    "max_speed": 1.0,
+    "acceleration": 0.5
+  },
+  "navigation": {
+    "obstacle_detection_enabled": true,
+    "gps_required": false
+  }
+}
