@@ -77,7 +77,7 @@ Das System verwendet eine JSON-basierte Konfiguration:
 
 ## Hardware
 
-- **Hauptcontroller**: Arduino Due/ESP32
+- **Hauptcontroller**: Raspberry Pi
 - **Motorcontroller**: Raspberry Pi Pico
 - **GPS**: RTK-fähiges Modul
 - **IMU**: 9-DOF Inertialsensor
