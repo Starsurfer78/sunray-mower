@@ -15,6 +15,7 @@ from op import Operation, MowOp, EscapeForwardOp, SmartBumperEscapeOp
 from obstacle_detection import ObstacleDetector
 from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEscapeOp
 from mock_hardware import get_hardware_or_mock, is_hardware_available
+from buzzer_feedback import BuzzerFeedback, get_buzzer_feedback
 
 # Hardware Import mit Fallback
 try:
@@ -57,6 +58,10 @@ class EnhancedSunrayController:
         # Enhanced Escape Komponenten
         self.sensor_fusion = SensorFusion()
         self.learning_system = LearningSystem()
+        
+        # Buzzer Feedback System
+        hardware_manager = getattr(self, 'hardware_manager', None)
+        self.buzzer_feedback = get_buzzer_feedback(hardware_manager, enabled=True)
         
         # Konfiguration laden
         self.config = self._load_config(config_file)
@@ -115,6 +120,14 @@ class EnhancedSunrayController:
                 print(f"LOG [{event_code}]: {message}")
                 
         self.logger = MockLogger()
+        
+        # Mock Hardware Manager für Buzzer
+        class MockHardwareManager:
+            def send_buzzer_command(self, frequency, duration):
+                print(f"MOCK BUZZER: {frequency}Hz für {duration}ms")
+                return True
+                
+        self.hardware_manager = MockHardwareManager()
         print("Mock Hardware erfolgreich initialisiert")
     
     def _load_config(self, config_file: str) -> Dict:
@@ -153,6 +166,10 @@ class EnhancedSunrayController:
         """Hauptschleife mit Enhanced Escape Integration."""
         self.logger.log("SYSTEM_STARTED", "Starting enhanced main loop")
         
+        # Buzzer-Feedback für System-Start
+        from events import EventCode
+        self.buzzer_feedback.handle_event(EventCode.SYSTEM_STARTED)
+        
         try:
             while True:
                 loop_start_time = time.time()
@@ -175,6 +192,8 @@ class EnhancedSunrayController:
                 
                 # Enhanced Escape Logik
                 if obstacle_detected:
+                    # Buzzer-Feedback für Hinderniserkennung
+                    self.buzzer_feedback.handle_event(EventCode.OBSTACLE_DETECTED)
                     self._handle_obstacle_detection(sensor_data, robot_state)
                 
                 # Aktuelle Operation ausführen
@@ -187,6 +206,8 @@ class EnhancedSunrayController:
                 
                 # Neigungswarnung prüfen
                 if robot_state.get('tilt_warning', False):
+                    # Buzzer-Feedback für Neigungswarnung
+                    self.buzzer_feedback.handle_event(EventCode.TILT_WARNING)
                     self._handle_tilt_warning()
                 
                 # Statistiken aktualisieren
@@ -198,6 +219,8 @@ class EnhancedSunrayController:
                     time.sleep(0.1 - loop_duration)
                 
         except KeyboardInterrupt:
+            # Buzzer-Feedback für System-Shutdown
+            self.buzzer_feedback.handle_event(EventCode.SYSTEM_SHUTTING_DOWN)
             self.logger.log("SYSTEM_STOPPED", "Main loop interrupted by user")
         except Exception as e:
             self.logger.log("ERROR", f"Main loop error: {e}")
@@ -309,6 +332,9 @@ class EnhancedSunrayController:
                 self.logger.log("WARNING", "Enhanced escape failed, falling back to traditional")
         
         # Fallback auf traditionelle Ausweichmanöver
+        # Buzzer-Feedback für Fallback
+        from buzzer_feedback import BuzzerTone
+        self.buzzer_feedback.play_tone(BuzzerTone.ENHANCED_ESCAPE_FALLBACK)
         self._execute_traditional_escape(sensor_data)
         self.stats['traditional_escapes'] += 1
     
@@ -351,6 +377,10 @@ class EnhancedSunrayController:
             if self.current_op and self.current_op.active:
                 self.current_op.stop()
             
+            # Buzzer-Feedback für Enhanced Escape Start
+            from buzzer_feedback import BuzzerTone
+            self.buzzer_feedback.play_tone(BuzzerTone.ENHANCED_ESCAPE_START)
+            
             # Adaptive Escape starten
             self.current_op = AdaptiveEscapeOp("enhanced_escape", self.motor)
             self.current_op.start(escape_params)
@@ -361,6 +391,9 @@ class EnhancedSunrayController:
             return True
             
         except Exception as e:
+            # Buzzer-Feedback für Enhanced Escape Fehler
+            from buzzer_feedback import BuzzerTone
+            self.buzzer_feedback.play_tone(BuzzerTone.ENHANCED_ESCAPE_FAILED)
             self.logger.log("ERROR", f"Enhanced escape failed: {e}")
             return False
     
