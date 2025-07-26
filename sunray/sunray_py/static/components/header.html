@@ -1,0 +1,63 @@
+<!-- Global Sensor Bar Component -->
+<div class="global-sensor-bar">
+    <div class="sensor-bar-container">
+        <div class="sensor-bar-item">
+            <div class="sensor-bar-icon">🔋</div>
+            <div class="sensor-bar-data">
+                <div class="sensor-bar-value" id="global-battery-value">--</div>
+                <div class="sensor-bar-sub-values">
+                    <span id="global-battery-voltage">--V</span> | 
+                    <span id="global-battery-current">--A</span>
+                </div>
+                <div class="sensor-bar-label">Batterie</div>
+            </div>
+        </div>
+        <div class="sensor-bar-item">
+            <div class="sensor-bar-icon">📡</div>
+            <div class="sensor-bar-data">
+                <div class="sensor-bar-value" id="global-gps-value">--</div>
+                <div class="sensor-bar-sub-values">
+                    <span>R: <span id="global-gps-robot-sats">--</span></span> | 
+                    <span>B: <span id="global-gps-base-sats">--</span></span>
+                </div>
+                <div class="sensor-bar-label">GPS</div>
+            </div>
+        </div>
+        <div class="sensor-bar-item">
+            <div class="sensor-bar-icon">
+                <i class="fas fa-thermometer-half"></i>
+            </div>
+            <div class="sensor-bar-data">
+                <span class="sensor-bar-value" id="global-temp">24°C</span>
+                <span class="sensor-bar-label">Temperatur</span>
+            </div>
+        </div>
+        <div class="sensor-bar-item">
+            <div class="sensor-bar-icon">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="sensor-bar-data">
+                <span class="sensor-bar-value status-active" id="global-status">Bereit</span>
+                <span class="sensor-bar-label">Status</span>
+            </div>
+        </div>
+        <div class="sensor-bar-item">
+            <div class="sensor-bar-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="sensor-bar-data">
+                <span class="sensor-bar-value" id="global-runtime">2h 34m</span>
+                <span class="sensor-bar-label">Laufzeit</span>
+            </div>
+        </div>
+        <div class="sensor-bar-item connection-status">
+            <div class="sensor-bar-icon">
+                <span class="status-dot" id="connection-status"></span>
+            </div>
+            <div class="sensor-bar-data">
+                <span class="sensor-bar-value" id="connection-text">Verbunden</span>
+                <span class="sensor-bar-label">Verbindung</span>
+            </div>
+        </div>
+    </div>
+</div>

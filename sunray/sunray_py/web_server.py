@@ -22,9 +22,36 @@ import psutil
 import json
 import time
 from datetime import datetime
+import random
+import threading
+from typing import Dict, List, Any
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)  # Enable CORS for all routes
+
+# Global variables for advanced path planning
+advanced_planner_instance = None
+planning_stats = {
+    'total_plans': 0,
+    'total_time': 0.0,
+    'successful_plans': 0,
+    'replanning_count': 0,
+    'dynamic_obstacles': 0,
+    'last_planning_time': 0.0
+}
+
+current_planning_status = {
+    'strategy': 'hybrid',
+    'status': 'ready',
+    'progress': 0.0,
+    'total_segments': 0,
+    'current_segment': 0,
+    'total_planned_distance': 0.0,
+    'replanning_count': 0,
+    'last_planning_time': 0.0
+}
+
+planning_lock = threading.Lock()
 
 # Mock data for demonstration
 mock_sensor_data = {
@@ -337,8 +364,229 @@ def manage_zones():
         except Exception as e:
             return jsonify({'error': str(e)}), 500
 
+# Advanced Path Planning API Endpoints
+@app.route('/api/advanced_planning/start', methods=['POST'])
+def start_advanced_planning():
+    """Startet die erweiterte Pfadplanung."""
+    try:
+        data = request.get_json() or {}
+        strategy = data.get('strategy', 'hybrid')
+        pattern = data.get('pattern', 'lines')
+        max_segment_length = data.get('max_segment_length', 10.0)
+        obstacle_detection_radius = data.get('obstacle_detection_radius', 1.0)
+        heuristic_weight = data.get('heuristic_weight', 1.0)
+        
+        with planning_lock:
+            start_time = time.time()
+            
+            # Simuliere Planungszeit
+            planning_time = random.uniform(0.5, 2.0)
+            time.sleep(planning_time)
+            
+            # Update planning status
+            current_planning_status.update({
+                'strategy': strategy,
+                'status': 'completed',
+                'progress': 1.0,
+                'total_segments': random.randint(15, 50),
+                'current_segment': 0,
+                'total_planned_distance': random.uniform(100, 500),
+                'last_planning_time': planning_time
+            })
+            
+            # Update statistics
+            planning_stats['total_plans'] += 1
+            planning_stats['total_time'] += planning_time
+            planning_stats['successful_plans'] += 1
+            planning_stats['last_planning_time'] = planning_time
+            
+            # Generate mock path
+            path = generate_mock_path(pattern, current_planning_status['total_segments'])
+            
+            return jsonify({
+                'success': True,
+                'status': current_planning_status.copy(),
+                'path': path,
+                'planning_time': planning_time,
+                'message': f'Planung mit {strategy} Strategie erfolgreich'
+            })
+            
+    except Exception as e:
+        with planning_lock:
+            current_planning_status['status'] = 'error'
+            planning_stats['total_plans'] += 1
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/advanced_planning/reset', methods=['POST'])
+def reset_advanced_planning():
+    """Setzt die erweiterte Pfadplanung zurück."""
+    try:
+        with planning_lock:
+            current_planning_status.update({
+                'status': 'ready',
+                'progress': 0.0,
+                'current_segment': 0,
+                'total_segments': 0,
+                'total_planned_distance': 0.0
+            })
+            
+        return jsonify({
+            'success': True,
+            'message': 'Pfadplanung zurückgesetzt'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/advanced_planning/stop', methods=['POST'])
+def stop_advanced_planning():
+    """Stoppt die erweiterte Pfadplanung."""
+    try:
+        with planning_lock:
+            current_planning_status['status'] = 'stopped'
+            
+        return jsonify({
+            'success': True,
+            'message': 'Pfadplanung gestoppt'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/advanced_planning/status', methods=['GET'])
+def get_advanced_planning_status():
+    """Gibt den aktuellen Status der erweiterten Pfadplanung zurück."""
+    try:
+        with planning_lock:
+            status = current_planning_status.copy()
+            stats = planning_stats.copy()
+            
+        return jsonify({
+            **status,
+            'statistics': stats,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/advanced_planning/add_obstacle', methods=['POST'])
+def add_dynamic_obstacle():
+    """Fügt ein dynamisches Hindernis hinzu."""
+    try:
+        data = request.get_json() or {}
+        x = data.get('x', 0.0)
+        y = data.get('y', 0.0)
+        size = data.get('size', 1.0)
+        
+        with planning_lock:
+            planning_stats['dynamic_obstacles'] += 1
+            
+            # Simuliere Neuplanung bei 30% Wahrscheinlichkeit
+            replanning_triggered = random.random() < 0.3
+            
+            if replanning_triggered:
+                planning_stats['replanning_count'] += 1
+                current_planning_status['replanning_count'] += 1
+                
+        return jsonify({
+            'success': True,
+            'obstacle': {'x': x, 'y': y, 'size': size},
+            'replanning_triggered': replanning_triggered,
+            'message': f'Dynamisches Hindernis bei ({x:.1f}, {y:.1f}) hinzugefügt'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/advanced_planning/simulate_navigation', methods=['POST'])
+def simulate_navigation():
+    """Simuliert Navigation entlang des geplanten Pfads."""
+    try:
+        data = request.get_json() or {}
+        max_waypoints = data.get('max_waypoints', 20)
+        
+        # Generiere Wegpunkte für Simulation
+        waypoints = []
+        total_distance = 0.0
+        
+        for i in range(max_waypoints):
+            x = random.uniform(50, 200)
+            y = random.uniform(50, 150)
+            waypoints.append({'x': x, 'y': y, 'timestamp': time.time() + i})
+            
+            if i > 0:
+                prev = waypoints[i-1]
+                distance = ((x - prev['x'])**2 + (y - prev['y'])**2)**0.5
+                total_distance += distance
+        
+        with planning_lock:
+            current_planning_status['current_segment'] = min(
+                max_waypoints, 
+                current_planning_status['total_segments']
+            )
+            current_planning_status['progress'] = min(1.0, max_waypoints / max(1, current_planning_status['total_segments']))
+        
+        return jsonify({
+            'success': True,
+            'waypoints': waypoints,
+            'waypoints_visited': len(waypoints),
+            'total_distance': total_distance,
+            'message': f'Navigation simuliert: {len(waypoints)} Wegpunkte'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+def generate_mock_path(pattern: str, num_segments: int) -> List[Dict[str, float]]:
+    """Generiert einen Mock-Pfad basierend auf dem gewählten Muster."""
+    path = []
+    
+    if pattern == 'lines':
+        # Linien-Muster
+        for i in range(num_segments):
+            x = 60 + (i % 10) * 15
+            y = 60 + (i // 10) * 10
+            path.append({'x': x, 'y': y})
+            
+    elif pattern == 'spiral':
+        # Spiral-Muster
+        center_x, center_y = 125, 100
+        for i in range(num_segments):
+            angle = i * 0.3
+            radius = 5 + i * 2
+            x = center_x + radius * math.cos(angle)
+            y = center_y + radius * math.sin(angle)
+            path.append({'x': x, 'y': y})
+            
+    elif pattern == 'random':
+        # Zufälliges Muster
+        for i in range(num_segments):
+            x = random.uniform(60, 190)
+            y = random.uniform(60, 140)
+            path.append({'x': x, 'y': y})
+            
+    else:  # perimeter
+        # Umrandungs-Muster
+        perimeter_points = [
+            (60, 60), (190, 60), (190, 140), (60, 140)
+        ]
+        for i in range(num_segments):
+            point_idx = i % len(perimeter_points)
+            x, y = perimeter_points[point_idx]
+            # Kleine Variation
+            x += random.uniform(-5, 5)
+            y += random.uniform(-5, 5)
+            path.append({'x': x, 'y': y})
+    
+    return path
+
+# Import math for spiral pattern
+import math
+
 if __name__ == '__main__':
     print("Sunray Mähroboter Web Interface")
     print("Starte Server auf http://localhost:5000")
+    print("Erweiterte Pfadplanung verfügbar unter /static/advanced_planning.html")
     print("Drücke Ctrl+C zum Beenden")
     app.run(host='0.0.0.0', port=5000, debug=True)

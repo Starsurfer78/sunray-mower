@@ -14,10 +14,30 @@ from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEsc
 from examples.integration_example import EnhancedSunrayController
 from smart_button_controller import get_smart_button_controller, ButtonAction
 
+# Hardware-Konfiguration laden
+def load_hardware_config():
+    """Lädt Hardware-Konfiguration aus config.json."""
+    try:
+        import json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+            hardware_config = config.get('hardware', {})
+            pico_config = hardware_config.get('pico_comm', {})
+            return {
+                'port': pico_config.get('port', '/dev/ttyS0'),
+                'baudrate': pico_config.get('baudrate', 115200)
+            }
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        return {'port': '/dev/ttyS0', 'baudrate': 115200}
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 imu = IMUSensor()
 gps = GPSModule()
-hw_manager = get_hardware_manager(port='/dev/ttyS0', baudrate=115200)
+
+# Hardware Manager mit konfigurierbaren Einstellungen
+hw_config = load_hardware_config()
+hw_manager = get_hardware_manager(port=hw_config['port'], baudrate=hw_config['baudrate'])
+print(f"HTTP Server: Hardware Manager konfiguriert - Port: {hw_config['port']}, Baudrate: {hw_config['baudrate']}")
 
 # Global instances - werden von main.py gesetzt
 motor_instance = None

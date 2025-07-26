@@ -191,3 +191,7 @@ htmlcov/
 # Local development
 .local/
 local_config.py
+
+# TODO files (not for GitHub)
+TODO_VERGLEICHSANALYSE.md
+sunray/sunray_py/docs/TODO.md

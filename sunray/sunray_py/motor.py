@@ -154,6 +154,7 @@ class Motor:
         # Pfadplanung und Navigation
         self.path_planner = PathPlanner()
         self.current_position = Point(0.0, 0.0)
+        self.current_heading = 0.0  # Aktuelle Ausrichtung in Radiant
         self.target_waypoint = None
         self.waypoint_tolerance = 0.2  # Meter - Entfernung für "Wegpunkt erreicht"
         self.navigation_enabled = False
@@ -1092,6 +1093,32 @@ class Motor:
             motor.update_position(5.2, 3.8)
         """
         self.current_position = Point(x, y)
+    
+    def update_heading(self, heading: float) -> None:
+        """
+        Aktualisiert die aktuelle Ausrichtung des Roboters.
+        
+        Args:
+            heading: Ausrichtung in Radiant
+        
+        Beispiel:
+            motor.update_heading(1.57)  # 90 Grad
+        """
+        self.current_heading = heading
+    
+    def set_navigation_target(self, x: float, y: float) -> None:
+        """
+        Setzt ein neues Navigationsziel für GPS-basierte Navigation.
+        
+        Args:
+            x: Ziel X-Koordinate in Metern
+            y: Ziel Y-Koordinate in Metern
+        
+        Beispiel:
+            motor.set_navigation_target(10.5, 8.2)
+        """
+        self.target_waypoint = Point(x, y)
+        print(f"Motor: GPS-Navigationsziel gesetzt ({x:.2f}, {y:.2f})")
     
     def start_autonomous_mowing(self) -> bool:
         """

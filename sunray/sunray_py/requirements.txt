@@ -10,3 +10,4 @@ python-can
 bleak
 pynmea2
 pyubx2
+requests

@@ -1,0 +1,69 @@
+{
+  "rtk_gps": {
+    "rtk_mode": "auto",
+    "ntrip_enabled": true,
+    "ntrip_fallback": true,
+    "port": "/dev/ttyUSB0",
+    "baudrate": 115200,
+    "timeout": 1.0,
+    "auto_configure": true,
+    
+
+    
+    "ntrip": {
+      "host": "your-ntrip-caster.com",
+      "port": 2101,
+      "mountpoint": "YOUR_MOUNTPOINT",
+      "username": "your_username",
+      "password": "your_password"
+    },
+    
+    "local_rtk_station": {
+      "enabled": false,
+      "host": "192.168.1.100",
+      "port": 2101,
+      "mountpoint": "BASE"
+    },
+    
+    "navigation": {
+      "waypoint_tolerance": 2.0,
+      "kidnap_threshold": 10.0,
+      "require_gps_fix": true,
+      "rtk_timeout": 30.0
+    }
+  },
+  
+  "hardware": {
+    "pico_comm": {
+      "port": "/dev/ttyS0",
+      "baudrate": 115200,
+      "timeout": 0.1
+    }
+  },
+  
+  "gps_navigation": {
+    "waypoint_tolerance": 0.15,
+    "rtk_required_accuracy": 0.05,
+    "max_position_age": 2.0,
+    "zone_boundary_tolerance": 0.5
+  },
+  
+  "astar_pathfinding": {
+    "diagonal_movement": true,
+    "heuristic_weight": 1.0,
+    "obstacle_inflation": 0.2,
+    "max_iterations": 10000
+  },
+  "advanced_path_planning": {
+    "strategy": "hybrid",
+    "max_segment_length": 10.0,
+    "obstacle_detection_radius": 1.0,
+    "replanning_threshold": 0.5
+  },
+  
+  "system": {
+    "debug_mode": false,
+    "log_level": "INFO",
+    "telemetry_interval": 1.0
+  }
+}

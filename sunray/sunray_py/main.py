@@ -46,6 +46,8 @@ from path_planner import MowPattern
 from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEscapeOp
 from examples.integration_example import EnhancedSunrayController
 from smart_button_controller import SmartButtonController, ButtonAction, RobotState, get_smart_button_controller
+from gps_navigation import GPSNavigation
+from advanced_path_planner import AdvancedPathPlanner, PlanningStrategy
 
 def select_operation(op_type: str, motor=None):
     """Operation-Factory basierend auf Zustand."""
@@ -105,8 +107,61 @@ def main():
     # Module initialisieren
     if HARDWARE_AVAILABLE:
         imu = IMUSensor()
-        gps = RTKGPS()
-        hardware_manager = get_hardware_manager(port='/dev/ttyS0', baudrate=115200)
+        # Konfiguration laden
+        rtk_mode = "auto"
+        ntrip_enabled = False
+        ntrip_fallback = True
+        rtk_port = "/dev/ttyUSB0"
+        rtk_baudrate = 115200
+        auto_configure = True
+        
+        # Hardware-Konfiguration
+        pico_port = "/dev/ttyS0"
+        pico_baudrate = 115200
+        
+        try:
+            import json
+            with open('config.json', 'r') as f:
+                config = json.load(f)
+                
+                # RTK-GPS Konfiguration
+                rtk_config = config.get('rtk_gps', {})
+                rtk_mode = rtk_config.get('rtk_mode', 'auto')
+                ntrip_enabled = rtk_config.get('ntrip_enabled', False)
+                ntrip_fallback = rtk_config.get('ntrip_fallback', True)
+                rtk_port = rtk_config.get('port', '/dev/ttyUSB0')
+                rtk_baudrate = rtk_config.get('baudrate', 115200)
+                auto_configure = rtk_config.get('auto_configure', True)
+                
+                # Hardware-Konfiguration
+                hardware_config = config.get('hardware', {})
+                pico_config = hardware_config.get('pico_comm', {})
+                pico_port = pico_config.get('port', '/dev/ttyS0')
+                pico_baudrate = pico_config.get('baudrate', 115200)
+                
+        except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+            print(f"Warnung: Konfigurationsdatei nicht gefunden oder fehlerhaft ({e}). Verwende Standardwerte.")
+        
+        # RTK-GPS initialisieren
+        gps = RTKGPS(
+            port=rtk_port, 
+            baudrate=rtk_baudrate, 
+            rtk_mode=rtk_mode,
+            enable_ntrip_fallback=ntrip_fallback,
+            auto_configure=auto_configure
+        )
+        
+        print(f"RTK-GPS: Modus '{rtk_mode}' - XBee RTK mit NTRIP-Fallback: {ntrip_fallback}")
+        if rtk_mode == "ntrip":
+            print("RTK-GPS: Nur NTRIP-Modus")
+        elif rtk_mode == "xbee":
+            print("RTK-GPS: Nur XBee RTK-Modus")
+        else:
+            print("RTK-GPS: Automatische RTK-Quellenerkennung")
+        
+        # Hardware Manager mit konfigurierbarem Port/Baudrate
+        hardware_manager = get_hardware_manager(port=pico_port, baudrate=pico_baudrate)
+        print(f"Hardware Manager: Port '{pico_port}', Baudrate {pico_baudrate}")
     else:
         imu, gps, hardware_manager = get_hardware_or_mock()
     
@@ -130,6 +185,14 @@ def main():
         obstacle_detector=obstacle_detector,
         state_estimator=estimator
     )
+    
+    # Erweiterte Pfadplanung initialisieren
+    advanced_planner = AdvancedPathPlanner()
+    print("Erweiterte Pfadplanung initialisiert")
+    
+    # GPS-Navigation mit erweiterter Pfadplanung initialisieren
+    gps_navigation = GPSNavigation(gps, advanced_planner)
+    print("GPS-Navigation mit erweiterter Pfadplanung initialisiert")
     
     # Smart Button Controller initialisieren
     button_controller = get_smart_button_controller(
@@ -184,10 +247,20 @@ def main():
     if map_module.zones:
         motor.set_mow_zones(map_module.zones)
         print(f"Pfadplanung: {len(map_module.zones)} Mähzonen geladen")
+        
+        # Erweiterte Pfadplanung mit Zonen und Hindernissen konfigurieren
+        obstacles = map_module.exclusions if map_module.exclusions else []
+        advanced_planner.set_zones_and_obstacles(map_module.zones, obstacles)
+        
+        # GPS-Navigation mit Zonen konfigurieren
+        gps_navigation.set_mow_zones(map_module.zones)
     
     if map_module.exclusions:
         motor.set_obstacles(map_module.exclusions)
         print(f"Pfadplanung: {len(map_module.exclusions)} Ausschlusszonen als Hindernisse gesetzt")
+        
+        # GPS-Navigation mit Ausschlusszonen konfigurieren
+        gps_navigation.set_exclusion_zones(map_module.exclusions)
     
     # Standard-Mähmuster setzen
     motor.set_mow_pattern(MowPattern.LINES)
@@ -293,6 +366,22 @@ def main():
                     'obstacle_status': obstacle_detector.get_status()
                 }
                 
+                # Dynamisches Hindernis zur erweiterten Pfadplanung hinzufügen
+                obstacle_status = obstacle_detector.get_status()
+                if obstacle_status.get('dynamic_obstacle'):
+                    from map import Polygon, Point
+                    # Vereinfachtes Hindernis um aktuelle Position erstellen
+                    current_pos = robot_state.get('position', {'x': 0, 'y': 0})
+                    obstacle_points = [
+                        Point(current_pos['x'] - 0.5, current_pos['y'] - 0.5),
+                        Point(current_pos['x'] + 0.5, current_pos['y'] - 0.5),
+                        Point(current_pos['x'] + 0.5, current_pos['y'] + 0.5),
+                        Point(current_pos['x'] - 0.5, current_pos['y'] + 0.5)
+                    ]
+                    dynamic_obstacle = Polygon(obstacle_points)
+                    advanced_planner.add_dynamic_obstacle(dynamic_obstacle)
+                    print("Dynamisches Hindernis zur erweiterten Pfadplanung hinzugefügt")
+                
                 # Enhanced Escape System verwenden für intelligente Ausweichmanöver
                 if current_op.name == "mow":
                     current_op.stop()
@@ -372,14 +461,25 @@ def main():
                     learning_system.process_feedback(feedback)
                     print(f"Enhanced System Lernen: {feedback.get('strategy', 'unknown')} - Erfolg: {feedback.get('success', False)}")
             
-            # Position für Pfadplanung aktualisieren
+            # GPS-Navigation aktualisieren
             if current_time - last_position_update >= position_update_interval:
-                if 'x' in robot_state and 'y' in robot_state and 'heading' in robot_state:
-                    motor.update_position(
-                        robot_state['x'], 
-                        robot_state['y'], 
-                        robot_state['heading']
-                    )
+                if gps_navigation:
+                    gps_status = gps_navigation.update()
+                    
+                    # Navigation Target an Motor weitergeben
+                    nav_target = gps_navigation.get_navigation_target()
+                    if nav_target:
+                        motor.set_navigation_target(nav_target[0], nav_target[1])
+                    
+                    # Position an Motor für Navigation weitergeben
+                    current_pos = gps_status['current_position']['local']
+                    if current_pos[0] != 0.0 or current_pos[1] != 0.0:
+                        motor.update_position(current_pos[0], current_pos[1])
+                        
+                        # Heading aus robot_state verwenden falls verfügbar
+                        if 'heading' in robot_state:
+                            motor.update_heading(robot_state['heading'])
+                
                 last_position_update = current_time
 
             desired_op = select_operation(robot_state.get("op_type", "idle"), motor=motor)
@@ -424,6 +524,7 @@ def main():
                         "is_adaptive": isinstance(current_op, AdaptiveEscapeOp)
                     }
                 },
+                "advanced_path_planning": advanced_planner.get_planning_status(),
                 **pico_data
             }
             
@@ -434,7 +535,8 @@ def main():
                 mqtt.publish("sunray/enhanced_stats", {
                     "learning_stats": learning_system.get_statistics(),
                     "sensor_fusion_stats": sensor_fusion.get_statistics(),
-                    "context_distribution": learning_system.get_context_distribution()
+                    "context_distribution": learning_system.get_context_distribution(),
+                    "path_planning_stats": advanced_planner.get_planning_status()
                 })
 
             storage.save(robot_state)
