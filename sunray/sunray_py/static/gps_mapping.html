@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunray RTK - GPS Kartenerstellung</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .mapping-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .control-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+        
+        .map-display {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gps-status {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .gps-status.connected {
+            border-color: var(--success-color);
+            background: rgba(76, 175, 80, 0.1);
+        }
+        
+        .gps-status.disconnected {
+            border-color: var(--danger-color);
+            background: rgba(244, 67, 54, 0.1);
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--danger-color);
+        }
+        
+        .status-dot.connected {
+            background: var(--success-color);
+        }
+        
+        .coordinates-display {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .mapping-controls {
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-group h4 {
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+        }
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .btn-mapping {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .btn-add-point {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-add-point:hover {
+            background: var(--accent-secondary);
+        }
+        
+        .btn-remove-point {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-remove-point:hover {
+            background: #e68900;
+        }
+        
+        .btn-finish-area {
+            background: var(--info-color);
+            color: white;
+        }
+        
+        .btn-finish-area:hover {
+            background: #1976d2;
+        }
+        
+        .btn-finish-area:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .btn-save-map {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-save-map:hover {
+            background: var(--accent-tertiary);
+        }
+        
+        .btn-save-map:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .points-list {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .point-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 12px;
+        }
+        
+        .point-item:last-child {
+            border-bottom: none;
+        }
+        
+        .point-coords {
+            font-family: monospace;
+            color: var(--text-secondary);
+        }
+        
+        .point-number {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .docking-section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .docking-section.active {
+            border-color: var(--info-color);
+            background: rgba(33, 150, 243, 0.1);
+        }
+        
+        .obstacles-section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+        
+        .obstacles-section.active {
+            border-color: var(--warning-color);
+            background: rgba(255, 152, 0, 0.1);
+        }
+        
+        .obstacle-mode-active {
+            background: var(--warning-color) !important;
+            color: white !important;
+        }
+        
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            background: #f0f8f0;
+        }
+        
+        .map-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+        }
+        
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90vw;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo">🤖</div>
+                    <h1>Sunray RTK</h1>
+                </div>
+                <nav class="nav-menu">
+                    <a href="dashboard_modular.html" class="nav-item">Dashboard</a>
+                    <a href="gps_mapping.html" class="nav-item active">GPS Kartenerstellung</a>
+                    <a href="path_planning.html" class="nav-item">Pfadplanung</a>
+                </nav>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="page-header">
+                <h2>GPS Kartenerstellung</h2>
+                <div class="status-info">
+                    <span id="mappingStatus">Bereit für Kartenerstellung</span>
+                </div>
+            </div>
+            
+            <div class="mapping-container">
+                <div class="control-panel">
+                    <!-- GPS Status -->
+                    <div class="gps-status" id="gpsStatus">
+                        <div class="status-indicator">
+                            <div class="status-dot" id="statusDot"></div>
+                            <strong id="statusText">GPS nicht verbunden</strong>
+                        </div>
+                        <div class="coordinates-display">
+                            <div>Lat: <span id="currentLat">--</span></div>
+                            <div>Lon: <span id="currentLon">--</span></div>
+                            <div>Genauigkeit: <span id="gpsAccuracy">--</span>m</div>
+                            <div>Satelliten: <span id="satellites">--</span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mapping Controls -->
+                    <div class="mapping-controls">
+                        <div class="control-group">
+                            <h4>Grenzpunkte sammeln</h4>
+                            <div class="btn-group">
+                                <button class="btn-mapping btn-add-point" onclick="addCurrentPoint()" id="addPointBtn" disabled>
+                                    📍 Punkt hinzufügen
+                                </button>
+                                <button class="btn-mapping btn-remove-point" onclick="removeLastPoint()" id="removePointBtn" disabled>
+                                    🗑️ Letzten Punkt löschen
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <h4>Fläche erstellen</h4>
+                            <div class="btn-group">
+                                <button class="btn-mapping btn-finish-area" onclick="finishArea()" id="finishAreaBtn" disabled>
+                                    ✅ Mappen beenden
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Points List -->
+                    <div class="points-list">
+                        <h4>Gesammelte Punkte (<span id="pointCount">0</span>)</h4>
+                        <div id="pointsList">
+                            <p style="text-align: center; color: #666; margin: 20px 0;">Noch keine Punkte gesammelt</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Docking Path Section -->
+                    <div class="docking-section" id="dockingSection">
+                        <h4>Dockingpfad (optional)</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
+                            Pfad zur Ladestation definieren
+                        </p>
+                        <div class="btn-group">
+                            <button class="btn-mapping btn-add-point" onclick="addDockingPoint()" id="addDockingBtn" disabled>
+                                🔌 Docking-Punkt hinzufügen
+                            </button>
+                            <button class="btn-mapping btn-remove-point" onclick="removeDockingPoint()" id="removeDockingBtn" disabled>
+                                🗑️ Docking-Punkt löschen
+                            </button>
+                        </div>
+                        <div id="dockingPointsList" style="margin-top: 10px; font-size: 12px;">
+                            <!-- Docking points will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Obstacles Section -->
+                    <div class="obstacles-section" id="obstaclesSection">
+                        <h4>Hindernisse einzeichnen</h4>
+                        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 15px;">
+                            Hindernisse in der Karte markieren
+                        </p>
+                        <div class="btn-group">
+                            <button class="btn-mapping btn-add-point" onclick="toggleObstacleMode()" id="obstacleToggleBtn" disabled>
+                                🚧 Hindernis-Modus
+                            </button>
+                            <button class="btn-mapping btn-remove-point" onclick="removeLastObstacle()" id="removeObstacleBtn" disabled>
+                                🗑️ Letztes Hindernis löschen
+                            </button>
+                        </div>
+                        <div id="obstaclesList" style="margin-top: 10px; font-size: 12px;">
+                            <!-- Obstacles will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Save Map -->
+                    <div class="control-group">
+                        <button class="btn-mapping btn-save-map" onclick="saveMap()" id="saveMapBtn" disabled>
+                            💾 Karte speichern
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="map-display">
+                    <div class="map-info">
+                        <div><strong>Kartenerstellung</strong></div>
+                        <div>Punkte: <span id="mapPointCount">0</span></div>
+                        <div>Fläche: <span id="areaSize">-- m²</span></div>
+                        <div>Status: <span id="mapStatus">Sammeln</span></div>
+                    </div>
+                    
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff4444;"></div>
+                            <span>Grenzpunkte</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4444ff;"></div>
+                            <span>Dockingpfad</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: rgba(76, 175, 80, 0.3);"></div>
+                            <span>Mähfläche</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ff6600;"></div>
+                            <span>Hindernisse</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #ffaa00;"></div>
+                            <span>Aktuelle Position</span>
+                        </div>
+                    </div>
+                    
+                    <canvas id="mapCanvas" class="map-canvas"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Save Map Modal -->
+    <div id="saveMapModal" class="modal">
+        <div class="modal-content">
+            <h3>Karte speichern</h3>
+            <form id="saveMapForm">
+                <div class="form-group">
+                    <label for="mapName">Kartenname:</label>
+                    <input type="text" id="mapName" name="mapName" required>
+                </div>
+                <div class="form-group">
+                    <label for="mapDescription">Beschreibung:</label>
+                    <textarea id="mapDescription" name="mapDescription"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeSaveModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // GPS Mapping JavaScript
+        let gpsConnected = false;
+        let currentPosition = { lat: 0, lon: 0, accuracy: 0 };
+        let boundaryPoints = [];
+        let dockingPoints = [];
+        let obstacles = [];
+        let areaFinished = false;
+        let mappingMode = 'boundary'; // 'boundary', 'docking', or 'obstacle'
+        let obstacleMode = false;
+        let currentObstacle = [];
+        
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Simuliere GPS-Verbindung
+        function simulateGPS() {
+            // Simuliere GPS-Daten für Demo
+            gpsConnected = true;
+            currentPosition = {
+                lat: 52.5200 + (Math.random() - 0.5) * 0.001,
+                lon: 13.4050 + (Math.random() - 0.5) * 0.001,
+                accuracy: 1.5 + Math.random() * 0.5
+            };
+            
+            updateGPSDisplay();
+            updateButtons();
+        }
+        
+        // GPS-Anzeige aktualisieren
+        function updateGPSDisplay() {
+            const statusElement = document.getElementById('gpsStatus');
+            const dotElement = document.getElementById('statusDot');
+            const textElement = document.getElementById('statusText');
+            
+            if (gpsConnected) {
+                statusElement.className = 'gps-status connected';
+                dotElement.className = 'status-dot connected';
+                textElement.textContent = 'GPS verbunden';
+                
+                document.getElementById('currentLat').textContent = currentPosition.lat.toFixed(6);
+                document.getElementById('currentLon').textContent = currentPosition.lon.toFixed(6);
+                document.getElementById('gpsAccuracy').textContent = currentPosition.accuracy.toFixed(1);
+                document.getElementById('satellites').textContent = '8';
+            } else {
+                statusElement.className = 'gps-status disconnected';
+                dotElement.className = 'status-dot';
+                textElement.textContent = 'GPS nicht verbunden';
+            }
+        }
+        
+        // Buttons aktualisieren
+        function updateButtons() {
+            const addPointBtn = document.getElementById('addPointBtn');
+            const removePointBtn = document.getElementById('removePointBtn');
+            const finishAreaBtn = document.getElementById('finishAreaBtn');
+            const saveMapBtn = document.getElementById('saveMapBtn');
+            const addDockingBtn = document.getElementById('addDockingBtn');
+            const removeDockingBtn = document.getElementById('removeDockingBtn');
+            const obstacleToggleBtn = document.getElementById('obstacleToggleBtn');
+            const removeObstacleBtn = document.getElementById('removeObstacleBtn');
+            
+            addPointBtn.disabled = !gpsConnected || areaFinished || obstacleMode;
+            removePointBtn.disabled = boundaryPoints.length === 0 || obstacleMode;
+            finishAreaBtn.disabled = boundaryPoints.length < 3 || obstacleMode;
+            saveMapBtn.disabled = !areaFinished || obstacleMode;
+            
+            addDockingBtn.disabled = !gpsConnected || !areaFinished || obstacleMode;
+            removeDockingBtn.disabled = dockingPoints.length === 0 || obstacleMode;
+            
+            obstacleToggleBtn.disabled = !areaFinished;
+            removeObstacleBtn.disabled = obstacles.length === 0;
+            
+            // Hindernis-Modus visuell anzeigen
+            if (obstacleMode) {
+                obstacleToggleBtn.classList.add('obstacle-mode-active');
+                obstacleToggleBtn.textContent = '✅ Hindernis beenden';
+                document.getElementById('obstaclesSection').classList.add('active');
+            } else {
+                obstacleToggleBtn.classList.remove('obstacle-mode-active');
+                obstacleToggleBtn.textContent = '🚧 Hindernis-Modus';
+                document.getElementById('obstaclesSection').classList.remove('active');
+            }
+        }
+        
+        // Aktuellen GPS-Punkt hinzufügen
+        function addCurrentPoint() {
+            if (!gpsConnected) return;
+            
+            const point = {
+                lat: currentPosition.lat,
+                lon: currentPosition.lon,
+                timestamp: new Date().toISOString()
+            };
+            
+            boundaryPoints.push(point);
+            updatePointsList();
+            updateButtons();
+            redrawMap();
+            
+            document.getElementById('mappingStatus').textContent = 
+                `${boundaryPoints.length} Punkte gesammelt`;
+        }
+        
+        // Letzten Punkt entfernen
+        function removeLastPoint() {
+            if (boundaryPoints.length > 0) {
+                boundaryPoints.pop();
+                updatePointsList();
+                updateButtons();
+                redrawMap();
+                
+                document.getElementById('mappingStatus').textContent = 
+                    boundaryPoints.length > 0 ? 
+                    `${boundaryPoints.length} Punkte gesammelt` : 
+                    'Bereit für Kartenerstellung';
+            }
+        }
+        
+        // Fläche fertigstellen
+        function finishArea() {
+            if (boundaryPoints.length < 3) return;
+            
+            areaFinished = true;
+            mappingMode = 'docking';
+            
+            document.getElementById('mappingStatus').textContent = 'Fläche erstellt - Dockingpfad optional';
+            document.getElementById('mapStatus').textContent = 'Fertig';
+            document.getElementById('dockingSection').classList.add('active');
+            
+            updateButtons();
+            redrawMap();
+            
+            // Fläche berechnen
+            const area = calculatePolygonArea(boundaryPoints);
+            document.getElementById('areaSize').textContent = `${area.toFixed(1)} m²`;
+        }
+        
+        // Docking-Punkt hinzufügen
+        function addDockingPoint() {
+            if (!gpsConnected || !areaFinished) return;
+            
+            const point = {
+                lat: currentPosition.lat,
+                lon: currentPosition.lon,
+                timestamp: new Date().toISOString()
+            };
+            
+            dockingPoints.push(point);
+            updateDockingPointsList();
+            updateButtons();
+            redrawMap();
+        }
+        
+        // Docking-Punkt entfernen
+        function removeDockingPoint() {
+            if (dockingPoints.length > 0) {
+                dockingPoints.pop();
+                updateDockingPointsList();
+                updateButtons();
+                redrawMap();
+            }
+        }
+        
+        // Hindernis-Modus umschalten
+        function toggleObstacleMode() {
+            if (!areaFinished) return;
+            
+            if (obstacleMode) {
+                // Hindernis-Modus beenden
+                if (currentObstacle.length >= 3) {
+                    // Aktuelles Hindernis speichern
+                    obstacles.push({
+                        id: Date.now().toString(),
+                        points: [...currentObstacle],
+                        type: 'polygon'
+                    });
+                }
+                currentObstacle = [];
+                obstacleMode = false;
+                mappingMode = 'boundary';
+                document.getElementById('mappingStatus').textContent = 'Hindernis-Modus beendet';
+            } else {
+                // Hindernis-Modus starten
+                obstacleMode = true;
+                mappingMode = 'obstacle';
+                currentObstacle = [];
+                document.getElementById('mappingStatus').textContent = 'Hindernis-Modus: Klicken Sie auf die Karte um Hindernispunkte zu setzen';
+            }
+            
+            updateObstaclesList();
+            updateButtons();
+            redrawMap();
+        }
+        
+        // Letztes Hindernis entfernen
+        function removeLastObstacle() {
+            if (obstacles.length > 0) {
+                obstacles.pop();
+                updateObstaclesList();
+                updateButtons();
+                redrawMap();
+            }
+        }
+        
+        // Hindernisliste aktualisieren
+        function updateObstaclesList() {
+            const obstaclesList = document.getElementById('obstaclesList');
+            
+            if (obstacles.length === 0 && currentObstacle.length === 0) {
+                obstaclesList.innerHTML = '<p style="color: #666; margin: 5px 0;">Keine Hindernisse</p>';
+                return;
+            }
+            
+            let html = '';
+            
+            // Gespeicherte Hindernisse
+            obstacles.forEach((obstacle, index) => {
+                html += `
+                    <div style="margin-bottom: 8px; padding: 8px; background: rgba(255, 102, 0, 0.1); border-radius: 4px;">
+                        <strong>Hindernis ${index + 1}</strong><br>
+                        <span style="color: #666;">${obstacle.points.length} Punkte</span>
+                    </div>
+                `;
+            });
+            
+            // Aktuelles Hindernis (falls im Bearbeitungsmodus)
+            if (currentObstacle.length > 0) {
+                html += `
+                    <div style="margin-bottom: 8px; padding: 8px; background: rgba(255, 152, 0, 0.2); border-radius: 4px; border: 1px dashed #ff9800;">
+                        <strong>Aktuelles Hindernis</strong><br>
+                        <span style="color: #666;">${currentObstacle.length} Punkte</span>
+                        ${currentObstacle.length >= 3 ? '<br><span style="color: #4CAF50; font-size: 10px;">✓ Bereit zum Speichern</span>' : ''}
+                    </div>
+                `;
+            }
+            
+            obstaclesList.innerHTML = html;
+        }
+        
+        // Punkteliste aktualisieren
+        function updatePointsList() {
+            const pointsList = document.getElementById('pointsList');
+            const pointCount = document.getElementById('pointCount');
+            const mapPointCount = document.getElementById('mapPointCount');
+            
+            pointCount.textContent = boundaryPoints.length;
+            mapPointCount.textContent = boundaryPoints.length;
+            
+            if (boundaryPoints.length === 0) {
+                pointsList.innerHTML = '<p style="text-align: center; color: #666; margin: 20px 0;">Noch keine Punkte gesammelt</p>';
+                return;
+            }
+            
+            pointsList.innerHTML = boundaryPoints.map((point, index) => `
+                <div class="point-item">
+                    <div class="point-number">${index + 1}</div>
+                    <div class="point-coords">
+                        ${point.lat.toFixed(6)}<br>
+                        ${point.lon.toFixed(6)}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // Docking-Punkteliste aktualisieren
+        function updateDockingPointsList() {
+            const dockingList = document.getElementById('dockingPointsList');
+            
+            if (dockingPoints.length === 0) {
+                dockingList.innerHTML = '<div style="color: #666;">Keine Docking-Punkte</div>';
+                return;
+            }
+            
+            dockingList.innerHTML = dockingPoints.map((point, index) => `
+                <div style="margin-bottom: 5px;">
+                    <strong>D${index + 1}:</strong> ${point.lat.toFixed(6)}, ${point.lon.toFixed(6)}
+                </div>
+            `).join('');
+        }
+        
+        // Canvas-Größe anpassen
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            redrawMap();
+        }
+        
+        // Mausklick auf Karte behandeln
+        function handleCanvasClick(event) {
+            if (!obstacleMode || !areaFinished) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Canvas-Koordinaten zu GPS-Koordinaten konvertieren
+            const gpsPoint = canvasToGPS(x, y);
+            
+            if (gpsPoint) {
+                currentObstacle.push({
+                    lat: gpsPoint.lat,
+                    lon: gpsPoint.lon,
+                    timestamp: new Date().toISOString()
+                });
+                
+                updateObstaclesList();
+                redrawMap();
+                
+                document.getElementById('mappingStatus').textContent = 
+                    `Hindernis: ${currentObstacle.length} Punkte (min. 3 für Polygon)`;
+            }
+        }
+        
+        // Canvas-Koordinaten zu GPS-Koordinaten
+        function canvasToGPS(canvasX, canvasY) {
+            if (boundaryPoints.length === 0) return null;
+            
+            // Bounding Box berechnen
+            const lats = boundaryPoints.map(p => p.lat);
+            const lons = boundaryPoints.map(p => p.lon);
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLon = Math.min(...lons);
+            const maxLon = Math.max(...lons);
+            
+            // Padding
+            const padding = 50;
+            const availableWidth = canvas.width - 2 * padding;
+            const availableHeight = canvas.height - 2 * padding;
+            
+            // Skalierung
+            const latRange = maxLat - minLat || 0.001;
+            const lonRange = maxLon - minLon || 0.001;
+            
+            const lon = minLon + ((canvasX - padding) / availableWidth) * lonRange;
+            const lat = maxLat - ((canvasY - padding) / availableHeight) * latRange;
+            
+            return { lat, lon };
+        }
+        
+        // Karte neu zeichnen
+        function redrawMap() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Hintergrund
+            ctx.fillStyle = '#f0f8f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (boundaryPoints.length === 0) {
+                // Placeholder
+                ctx.fillStyle = '#666';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('GPS-Punkte sammeln um Karte zu erstellen', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Koordinaten zu Canvas-Koordinaten konvertieren
+            const canvasPoints = boundaryPoints.map(point => gpsToCanvas(point));
+            
+            // Fläche zeichnen (wenn fertig)
+            if (areaFinished && canvasPoints.length >= 3) {
+                ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+                ctx.strokeStyle = '#4CAF50';
+                ctx.lineWidth = 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
+                for (let i = 1; i < canvasPoints.length; i++) {
+                    ctx.lineTo(canvasPoints[i].x, canvasPoints[i].y);
+                }
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+            }
+            
+            // Grenzpunkte zeichnen
+            canvasPoints.forEach((point, index) => {
+                ctx.fillStyle = '#ff4444';
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // Punktnummer
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText((index + 1).toString(), point.x, point.y + 3);
+            });
+            
+            // Docking-Pfad zeichnen
+            if (dockingPoints.length > 0) {
+                const dockingCanvasPoints = dockingPoints.map(point => gpsToCanvas(point));
+                
+                // Docking-Linie
+                if (dockingCanvasPoints.length > 1) {
+                    ctx.strokeStyle = '#4444ff';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(dockingCanvasPoints[0].x, dockingCanvasPoints[0].y);
+                    for (let i = 1; i < dockingCanvasPoints.length; i++) {
+                        ctx.lineTo(dockingCanvasPoints[i].x, dockingCanvasPoints[i].y);
+                    }
+                    ctx.stroke();
+                }
+                
+                // Docking-Punkte
+                dockingCanvasPoints.forEach((point, index) => {
+                    ctx.fillStyle = '#4444ff';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.font = '8px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('D', point.x, point.y + 2);
+                });
+            }
+            
+            // Hindernisse zeichnen
+            obstacles.forEach(obstacle => {
+                if (obstacle.points.length >= 3) {
+                    const obstacleCanvasPoints = obstacle.points.map(point => gpsToCanvas(point));
+                    
+                    ctx.fillStyle = 'rgba(255, 102, 0, 0.3)';
+                    ctx.strokeStyle = '#ff6600';
+                    ctx.lineWidth = 2;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(obstacleCanvasPoints[0].x, obstacleCanvasPoints[0].y);
+                    for (let i = 1; i < obstacleCanvasPoints.length; i++) {
+                        ctx.lineTo(obstacleCanvasPoints[i].x, obstacleCanvasPoints[i].y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                
+                // Hindernispunkte zeichnen
+                obstacle.points.forEach(point => {
+                    const canvasPoint = gpsToCanvas(point);
+                    
+                    ctx.fillStyle = '#ff6600';
+                    ctx.beginPath();
+                    ctx.arc(canvasPoint.x, canvasPoint.y, 4, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+            });
+            
+            // Aktuelles Hindernis zeichnen
+            if (currentObstacle.length > 0) {
+                const currentObstacleCanvasPoints = currentObstacle.map(point => gpsToCanvas(point));
+                
+                ctx.strokeStyle = '#ff9800';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([3, 3]);
+                
+                if (currentObstacle.length >= 3) {
+                    ctx.fillStyle = 'rgba(255, 152, 0, 0.2)';
+                    ctx.beginPath();
+                    ctx.moveTo(currentObstacleCanvasPoints[0].x, currentObstacleCanvasPoints[0].y);
+                    for (let i = 1; i < currentObstacleCanvasPoints.length; i++) {
+                        ctx.lineTo(currentObstacleCanvasPoints[i].x, currentObstacleCanvasPoints[i].y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                } else if (currentObstacle.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(currentObstacleCanvasPoints[0].x, currentObstacleCanvasPoints[0].y);
+                    for (let i = 1; i < currentObstacleCanvasPoints.length; i++) {
+                        ctx.lineTo(currentObstacleCanvasPoints[i].x, currentObstacleCanvasPoints[i].y);
+                    }
+                    ctx.stroke();
+                }
+                
+                // Aktuelle Hindernispunkte zeichnen
+                currentObstacleCanvasPoints.forEach(point => {
+                    ctx.fillStyle = '#ff9800';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+                
+                ctx.setLineDash([]);
+            }
+            
+            // Aktuelle Position
+            if (gpsConnected) {
+                const currentCanvasPos = gpsToCanvas(currentPosition);
+                ctx.fillStyle = '#ffaa00';
+                ctx.beginPath();
+                ctx.arc(currentCanvasPos.x, currentCanvasPos.y, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('🤖', currentCanvasPos.x, currentCanvasPos.y + 3);
+            }
+        }
+        
+        // GPS zu Canvas-Koordinaten
+        function gpsToCanvas(gpsPoint) {
+            if (boundaryPoints.length === 0) {
+                return { x: canvas.width / 2, y: canvas.height / 2 };
+            }
+            
+            // Bounding Box berechnen
+            const lats = boundaryPoints.map(p => p.lat);
+            const lons = boundaryPoints.map(p => p.lon);
+            const minLat = Math.min(...lats, gpsPoint.lat);
+            const maxLat = Math.max(...lats, gpsPoint.lat);
+            const minLon = Math.min(...lons, gpsPoint.lon);
+            const maxLon = Math.max(...lons, gpsPoint.lon);
+            
+            // Padding
+            const padding = 50;
+            const availableWidth = canvas.width - 2 * padding;
+            const availableHeight = canvas.height - 2 * padding;
+            
+            // Skalierung
+            const latRange = maxLat - minLat || 0.001;
+            const lonRange = maxLon - minLon || 0.001;
+            
+            const x = padding + ((gpsPoint.lon - minLon) / lonRange) * availableWidth;
+            const y = padding + ((maxLat - gpsPoint.lat) / latRange) * availableHeight;
+            
+            return { x, y };
+        }
+        
+        // Polygonfläche berechnen (Shoelace-Formel)
+        function calculatePolygonArea(points) {
+            if (points.length < 3) return 0;
+            
+            let area = 0;
+            for (let i = 0; i < points.length; i++) {
+                const j = (i + 1) % points.length;
+                area += points[i].lon * points[j].lat;
+                area -= points[j].lon * points[i].lat;
+            }
+            area = Math.abs(area) / 2;
+            
+            // Konvertierung zu m² (grobe Schätzung)
+            const metersPerDegree = 111000; // ca. 111 km pro Grad
+            return area * metersPerDegree * metersPerDegree;
+        }
+        
+        // Karte speichern
+        function saveMap() {
+            if (!areaFinished) return;
+            
+            // Aktuelles Hindernis speichern falls vorhanden
+            if (currentObstacle.length >= 3) {
+                obstacles.push({
+                    id: Date.now().toString(),
+                    points: [...currentObstacle],
+                    type: 'polygon'
+                });
+                currentObstacle = [];
+                obstacleMode = false;
+                updateObstaclesList();
+                updateButtons();
+            }
+            
+            document.getElementById('saveMapModal').style.display = 'block';
+        }
+        
+        // Save Modal schließen
+        function closeSaveModal() {
+            document.getElementById('saveMapModal').style.display = 'none';
+        }
+        
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('click', handleCanvasClick);
+        
+        document.getElementById('saveMapForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const mapData = {
+                id: Date.now().toString(),
+                name: formData.get('mapName'),
+                description: formData.get('mapDescription'),
+                boundaryPoints: boundaryPoints,
+                dockingPoints: dockingPoints,
+                obstacles: obstacles,
+                area: calculatePolygonArea(boundaryPoints),
+                created: new Date().toISOString(),
+                type: 'gps_mapped'
+            };
+            
+            // In localStorage speichern
+            let maps = JSON.parse(localStorage.getItem('sunrayMaps') || '[]');
+            maps.push(mapData);
+            localStorage.setItem('sunrayMaps', JSON.stringify(maps));
+            
+            alert(`Karte "${mapData.name}" wurde erfolgreich gespeichert!`);
+            closeSaveModal();
+            
+            // Reset für neue Karte
+            boundaryPoints = [];
+            dockingPoints = [];
+            obstacles = [];
+            currentObstacle = [];
+            areaFinished = false;
+            mappingMode = 'boundary';
+            obstacleMode = false;
+            
+            updatePointsList();
+            updateDockingPointsList();
+            updateObstaclesList();
+            updateButtons();
+            redrawMap();
+            
+            document.getElementById('mappingStatus').textContent = 'Bereit für neue Kartenerstellung';
+            document.getElementById('mapStatus').textContent = 'Sammeln';
+            document.getElementById('areaSize').textContent = '-- m²';
+            document.getElementById('dockingSection').classList.remove('active');
+        });
+        
+        // Modal schließen bei Klick außerhalb
+        document.getElementById('saveMapModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeSaveModal();
+            }
+        });
+        
+        // Initialisierung
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            updateGPSDisplay();
+            updateButtons();
+            updatePointsList();
+            updateDockingPointsList();
+            updateObstaclesList();
+            
+            // GPS-Simulation starten
+            setTimeout(() => {
+                simulateGPS();
+                // GPS-Updates simulieren
+                setInterval(simulateGPS, 2000);
+            }, 1000);
+        });
+        
+        console.log('Sunray RTK GPS Kartenerstellung geladen');
+    </script>
+</body>
+</html>

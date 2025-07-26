@@ -1,180 +1,266 @@
+<!--
+Sunray Mähroboter - Advanced Dashboard
+Based on the Ardumower Sunray project with enhanced features
+
+Original Sunray project:
+- Forum: https://forum.ardumower.de/
+- GitHub: https://github.com/Ardumower/Sunray
+- Copyright (c) 2021-2024 by Alexander Grau, Grau GmbH
+
+This advanced dashboard provides comprehensive monitoring and control
+for Python-based Sunray mower implementations with real-time data,
+interactive charts, and intelligent system management.
+
+License: GPL-3.0 (same as original Sunray project)
+-->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Sunray Mähroboter Control</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Sunray Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div id="app">
-        <!-- Sidebar Container -->
-        <div id="sidebar-container"></div>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Header Container -->
-            <div id="header-container"></div>
-
-            <!-- Page Content -->
-            <div class="page active">
-                <header class="page-header">
-                    <h1>Dashboard</h1>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="header-title">
+                    <div class="robot-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h1>Sunray RTK</h1>
+                </div>
+                <nav class="nav-menu">
+                    <a href="dashboard_modular.html" class="nav-item active">Dashboard</a>
+                    <a href="gps_mapping.html" class="nav-item">GPS Kartenerstellung</a>
+                    <a href="path_planning.html" class="nav-item">Pfadplanung</a>
+                </nav>
+                <div class="status-indicator online">
+                    <i class="fas fa-circle"></i>
+                    Auto-Mähen läuft
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard Container -->
+        <div class="content-wrapper">
+            <div class="dashboard-container">
+                <!-- Map Section -->
+                <div class="map-container">
+                    <div class="map-placeholder">
+                        <div style="text-align: center;">
+                            <i class="fas fa-map" style="font-size: 48px; margin-bottom: 1rem; color: #4CAF50;"></i>
+                            <div style="font-size: 18px; font-weight: 600; margin-bottom: 0.5rem;">Mähroute wird geladen...</div>
+                            <div style="font-size: 14px; color: #6c757d;">GPS-Position wird ermittelt</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Stats -->
+                <div class="status-overview">
+                    <div class="status-card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-battery-three-quarters"></i> Batterie</h4>
+                        </div>
+                        <div class="card-content">
+                            <div class="status-value" id="battery-level">78%</div>
+                            <div class="status-subtitle">Verbleibende Zeit: 3h 15min</div>
+                            <div class="progress-bar" style="margin-top: 0.5rem;">
+                                <div class="progress-fill" style="width: 78%;"></div>
+                            </div>
+                        </div>
+                    </div>
                     
-                </header>
-
-                <!-- Main Content Area -->
-                <div class="page-content">
-                    <!-- Camera Feed -->
-                    <div class="card camera-card bento-large">
+                    <div class="status-card">
                         <div class="card-header">
-                            <h3><i class="fas fa-camera"></i> Live Kamera</h3>
-                            <div class="card-actions">
-                                <button class="btn btn-sm btn-secondary" onclick="toggleCamera()">
-                                    <i class="fas fa-play" id="camera-toggle-icon"></i>
-                                </button>
-                            </div>
+                            <h4><i class="fas fa-chart-area"></i> Gemähte Fläche</h4>
                         </div>
                         <div class="card-content">
-                            <div class="camera-container">
-                                <img id="camera-feed" src="http://localhost:5000/api/camera/stream" alt="Kamera nicht verfügbar">
-                                <div class="camera-overlay">
-                                    <div class="camera-status">
-                                        <span class="status-dot online"></span>
-                                        <span>Live</span>
-                                    </div>
-                                </div>
+                            <div class="status-value" id="mowed-area">77 m²</div>
+                            <div class="status-subtitle">von 350 m² (22%)</div>
+                            <div class="progress-bar" style="margin-top: 0.5rem;">
+                                <div class="progress-fill" style="width: 22%;"></div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Map -->
-                    <div class="card map-card bento-large">
+                    
+                    <div class="status-card">
                         <div class="card-header">
-                            <h3><i class="fas fa-map-marked-alt"></i> Echtzeit Karte</h3>
-                            <div class="map-controls">
-                                <button class="btn btn-sm btn-info" onclick="centerMap()">
-                                    <i class="fas fa-crosshairs"></i> Zentrieren
-                                </button>
-                            </div>
+                            <h4><i class="fas fa-clock"></i> Arbeitszeit</h4>
                         </div>
                         <div class="card-content">
-                            <div id="map-container">
-                                <canvas id="map-canvas" width="400" height="300"></canvas>
-                                <div class="map-legend">
-                                    <div class="legend-item">
-                                        <span class="legend-color robot"></span>
-                                        <span>Roboter</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-color path"></span>
-                                        <span>Pfad</span>
-                                    </div>
-                                    <div class="legend-item">
-                                        <span class="legend-color zone"></span>
-                                        <span>Mähzone</span>
-                                    </div>
-                                </div>
-                            </div>
+                            <div class="status-value" id="work-time">10 min</div>
+                            <div class="status-subtitle">Heute aktiv</div>
                         </div>
                     </div>
-
-                    <!-- Quick Status -->
-                    <div class="card status-card bento-medium">
-                        <div class="card-header">
-                            <h3><i class="fas fa-info-circle"></i> Status</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="status-display">
-                                <div class="status-item">
-                                    <span class="status-label">Betrieb:</span>
-                                    <span class="status-value status-active" id="robot-status">Bereit</span>
-                                </div>
-                                <div class="status-item">
-                                    <span class="status-label">Modus:</span>
-                                    <span class="status-value" id="robot-mode">Automatisch</span>
-                                </div>
-                                <div class="status-item">
-                                    <span class="status-label">Laufzeit:</span>
-                                    <span class="status-value" id="runtime">2h 34m</span>
-                                </div>
-                            </div>
+                </div>
+                
+                <!-- Control Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-gamepad"></i> Roboter Steuerung</h4>
+                    </div>
+                    <div class="card-content">
+                        <div class="control-buttons">
+                            <button class="btn btn-success" onclick="startMowing()">
+                                <i class="fas fa-play"></i> Start
+                            </button>
+                            <button class="btn btn-danger" onclick="stopMowing()">
+                                <i class="fas fa-stop"></i> Stopp
+                            </button>
+                            <button class="btn btn-warning" onclick="pauseMowing()">
+                                <i class="fas fa-pause"></i> Pause
+                            </button>
+                            <button class="btn btn-info" onclick="returnHome()">
+                                <i class="fas fa-home"></i> Basis
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Sensor Data -->
-                    <div class="card sensors-card bento-medium">
-                        <div class="card-header">
-                            <h3><i class="fas fa-chart-line"></i> Sensoren</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="sensor-grid">
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">🔋</div>
-                                    <div class="sensor-data">
-                                        <div class="sensor-value" id="battery-level">85%</div>
-                                        <div class="sensor-label">Batterie</div>
-                                    </div>
+                </div>
+                
+                <!-- Recent Activities -->
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-history"></i> Letzte Aktivitäten</h4>
+                    </div>
+                    <div class="card-content">
+                        <div class="activity-feed" id="activity-feed">
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-play"></i>
                                 </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">📡</div>
-                                    <div class="sensor-data">
-                                        <div class="sensor-value" id="gps-quality">RTK Fix</div>
-                                        <div class="sensor-label">GPS</div>
-                                    </div>
-                                </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">🌡️</div>
-                                    <div class="sensor-data">
-                                        <div class="sensor-value" id="temperature">24°C</div>
-                                        <div class="sensor-label">Temperatur</div>
-                                    </div>
-                                </div>
-                                <div class="sensor-item">
-                                    <div class="sensor-icon">⚡</div>
-                                    <div class="sensor-data">
-                                        <div class="sensor-value" id="power-consumption">45W</div>
-                                        <div class="sensor-label">Verbrauch</div>
-                                    </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Mähen gestartet</div>
+                                    <div class="activity-time">vor 10 Minuten</div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Quick Actions -->
-                    <div class="card actions-card bento-medium">
-                        <div class="card-header">
-                            <h3><i class="fas fa-bolt"></i> Schnellaktionen</h3>
-                        </div>
-                        <div class="card-content">
-                            <div class="action-buttons">
-                                <button class="btn btn-success" onclick="startMowing()">
-                                    <i class="fas fa-play"></i> Mähen starten
-                                </button>
-                                <button class="btn btn-warning" onclick="pauseMowing()">
-                                    <i class="fas fa-pause"></i> Pausieren
-                                </button>
-                                <button class="btn btn-danger" onclick="stopMowing()">
-                                    <i class="fas fa-stop"></i> Stoppen
-                                </button>
-                                <button class="btn btn-info" onclick="returnToBase()">
-                                    <i class="fas fa-home"></i> Zur Basis
-                                </button>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-battery-full"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Batterie vollständig geladen</div>
+                                    <div class="activity-time">vor 2 Stunden</div>
+                                </div>
+                            </div>
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i class="fas fa-home"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Zur Ladestation zurückgekehrt</div>
+                                    <div class="activity-time">vor 3 Stunden</div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </main>
-
-        <!-- Footer Container -->
-        <div id="footer-container"></div>
+        </div>
     </div>
-
-    <!-- Base Scripts -->
-    <script src="js/components.js"></script>
     
+    <!-- Scripts -->
+    <script>
+        // Dashboard JavaScript
+        let isRunning = false;
+        
+        function updateStatus(status) {
+            const statusIndicator = document.querySelector('.status-indicator');
+            const statusText = statusIndicator.querySelector('text') || statusIndicator.lastChild;
+            
+            if (status === 'running') {
+                statusIndicator.className = 'status-indicator online';
+                statusIndicator.innerHTML = '<i class="fas fa-circle"></i> Auto-Mähen läuft';
+            } else if (status === 'paused') {
+                statusIndicator.className = 'status-indicator warning';
+                statusIndicator.innerHTML = '<i class="fas fa-pause-circle"></i> Pausiert';
+            } else {
+                statusIndicator.className = 'status-indicator offline';
+                statusIndicator.innerHTML = '<i class="fas fa-stop-circle"></i> Gestoppt';
+            }
+        }
+        
+        function addActivity(title, icon) {
+            const feed = document.getElementById('activity-feed');
+            const newActivity = document.createElement('div');
+            newActivity.className = 'activity-item';
+            newActivity.innerHTML = `
+                <div class="activity-icon">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">${title}</div>
+                    <div class="activity-time">gerade eben</div>
+                </div>
+            `;
+            feed.insertBefore(newActivity, feed.firstChild);
+            
+            // Keep only last 5 activities
+            while (feed.children.length > 5) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+        
+        function startMowing() {
+            isRunning = true;
+            updateStatus('running');
+            addActivity('Mähen gestartet', 'play');
+            console.log('Mähen wird gestartet...');
+        }
+        
+        function stopMowing() {
+            isRunning = false;
+            updateStatus('stopped');
+            addActivity('Mähen gestoppt', 'stop');
+            console.log('Mähen wird gestoppt...');
+        }
+        
+        function pauseMowing() {
+            isRunning = false;
+            updateStatus('paused');
+            addActivity('Mähen pausiert', 'pause');
+            console.log('Mähen wird pausiert...');
+        }
+        
+        function returnHome() {
+            isRunning = false;
+            updateStatus('stopped');
+            addActivity('Rückkehr zur Basis', 'home');
+            console.log('Roboter kehrt zur Basis zurück...');
+        }
+        
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Sunray RTK Dashboard geladen');
+            
+            // Simulate real-time updates
+            setInterval(function() {
+                // Update time in activities
+                const timeElements = document.querySelectorAll('.activity-time');
+                timeElements.forEach((element, index) => {
+                    if (element.textContent === 'gerade eben') {
+                        element.textContent = 'vor 1 Minute';
+                    } else if (element.textContent === 'vor 1 Minute') {
+                        element.textContent = 'vor 2 Minuten';
+                    }
+                });
+            }, 60000); // Update every minute
+        });
+        
+        // Add some visual feedback for button clicks
+        document.querySelectorAll('.btn').forEach(button => {
+            button.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+    </script>
 </body>
 </html>

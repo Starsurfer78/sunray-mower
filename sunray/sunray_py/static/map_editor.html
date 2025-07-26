@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunray RTK - Kartenverwaltung</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .map-editor {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .map-list-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+        
+        .map-canvas-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            cursor: crosshair;
+            position: relative;
+        }
+        
+        .map-item {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .map-item:hover {
+            background: var(--hover-bg);
+            border-color: var(--primary-color);
+        }
+        
+        .map-item.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .map-item h4 {
+            margin: 0 0 8px 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .map-item p {
+            margin: 0;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .map-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-edit {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-delete {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .btn-save {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .toolbar {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .tool-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        
+        .tool-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .coordinates {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        
+        .zone {
+            position: absolute;
+            border: 2px solid var(--primary-color);
+            background: rgba(0, 123, 255, 0.1);
+            cursor: move;
+        }
+        
+        .zone-handle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--primary-color);
+            border: 1px solid white;
+            border-radius: 50%;
+            cursor: nw-resize;
+        }
+        
+        .zone-handle.nw { top: -4px; left: -4px; }
+        .zone-handle.ne { top: -4px; right: -4px; }
+        .zone-handle.sw { bottom: -4px; left: -4px; }
+        .zone-handle.se { bottom: -4px; right: -4px; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90vw;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .form-group textarea {
+            height: 80px;
+            resize: vertical;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo">🤖</div>
+                    <h1>Sunray RTK</h1>
+                </div>
+                <nav class="nav-menu">
+                    <a href="dashboard_modular.html" class="nav-item">Dashboard</a>
+                    <a href="gps_mapping.html" class="nav-item">GPS Kartenerstellung</a>
+                    <a href="map_editor.html" class="nav-item active">Kartenverwaltung</a>
+                    <a href="path_planning.html" class="nav-item">Pfadplanung</a>
+                </nav>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="page-header">
+                <h2>Kartenverwaltung</h2>
+                <button class="btn btn-primary" onclick="createNewMap()">Neue Karte erstellen</button>
+            </div>
+            
+            <div class="map-editor">
+                <div class="map-list-panel">
+                    <h3>Gespeicherte Karten</h3>
+                    <div id="mapList">
+                        <!-- Karten werden hier dynamisch geladen -->
+                    </div>
+                </div>
+                
+                <div class="map-canvas-panel">
+                    <div class="toolbar">
+                        <button class="tool-btn active" data-tool="select" onclick="setTool('select')">Auswählen</button>
+                        <button class="tool-btn" data-tool="zone" onclick="setTool('zone')">Zone zeichnen</button>
+                        <button class="tool-btn" data-tool="obstacle" onclick="setTool('obstacle')">Hindernis</button>
+                        <button class="tool-btn" data-tool="station" onclick="setTool('station')">Ladestation</button>
+                    </div>
+                    
+                    <div class="coordinates" id="coordinates">X: 0, Y: 0</div>
+                    
+                    <canvas id="mapCanvas" class="map-canvas"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Modal für Kartenerstellung/bearbeitung -->
+    <div id="mapModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Neue Karte erstellen</h3>
+            <form id="mapForm">
+                <div class="form-group">
+                    <label for="mapName">Kartenname:</label>
+                    <input type="text" id="mapName" name="mapName" required>
+                </div>
+                <div class="form-group">
+                    <label for="mapDescription">Beschreibung:</label>
+                    <textarea id="mapDescription" name="mapDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="mapWidth">Breite (m):</label>
+                    <input type="number" id="mapWidth" name="mapWidth" value="100" min="10" max="1000">
+                </div>
+                <div class="form-group">
+                    <label for="mapHeight">Höhe (m):</label>
+                    <input type="number" id="mapHeight" name="mapHeight" value="100" min="10" max="1000">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentTool = 'select';
+        let currentMap = null;
+        let maps = JSON.parse(localStorage.getItem('sunrayMaps') || '[]');
+        let isDrawing = false;
+        let startX, startY;
+        let selectedZone = null;
+        
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Canvas-Größe anpassen
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            redrawCanvas();
+        }
+        
+        // Tool setzen
+        function setTool(tool) {
+            currentTool = tool;
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+            
+            canvas.style.cursor = tool === 'select' ? 'default' : 'crosshair';
+        }
+        
+        // Neue Karte erstellen
+        function createNewMap() {
+            document.getElementById('modalTitle').textContent = 'Neue Karte erstellen';
+            document.getElementById('mapForm').reset();
+            document.getElementById('mapModal').style.display = 'block';
+        }
+        
+        // Karte bearbeiten
+        function editMap(mapId) {
+            const map = maps.find(m => m.id === mapId);
+            if (!map) return;
+            
+            document.getElementById('modalTitle').textContent = 'Karte bearbeiten';
+            document.getElementById('mapName').value = map.name;
+            document.getElementById('mapDescription').value = map.description || '';
+            document.getElementById('mapWidth').value = map.width;
+            document.getElementById('mapHeight').value = map.height;
+            document.getElementById('mapModal').style.display = 'block';
+            
+            currentMap = map;
+        }
+        
+        // Karte löschen
+        function deleteMap(mapId) {
+            if (confirm('Sind Sie sicher, dass Sie diese Karte löschen möchten?')) {
+                maps = maps.filter(m => m.id !== mapId);
+                localStorage.setItem('sunrayMaps', JSON.stringify(maps));
+                loadMapList();
+                if (currentMap && currentMap.id === mapId) {
+                    currentMap = null;
+                    redrawCanvas();
+                }
+            }
+        }
+        
+        // Karte laden
+        function loadMap(mapId) {
+            const map = maps.find(m => m.id === mapId);
+            if (!map) return;
+            
+            currentMap = map;
+            document.querySelectorAll('.map-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-map-id="${mapId}"]`).classList.add('active');
+            
+            redrawCanvas();
+        }
+        
+        // Modal schließen
+        function closeModal() {
+            document.getElementById('mapModal').style.display = 'none';
+            currentMap = null;
+        }
+        
+        // Kartenliste laden
+        function loadMapList() {
+            const mapList = document.getElementById('mapList');
+            mapList.innerHTML = '';
+            
+            if (maps.length === 0) {
+                mapList.innerHTML = '<p style="text-align: center; color: #666; margin-top: 20px;">Keine Karten vorhanden</p>';
+                return;
+            }
+            
+            maps.forEach(map => {
+                const mapItem = document.createElement('div');
+                mapItem.className = 'map-item';
+                mapItem.setAttribute('data-map-id', map.id);
+                mapItem.onclick = () => loadMap(map.id);
+                
+                mapItem.innerHTML = `
+                    <h4>${map.name}</h4>
+                    <p>${map.description || 'Keine Beschreibung'}</p>
+                    <p>Größe: ${map.width}m × ${map.height}m</p>
+                    <p>Zonen: ${map.zones ? map.zones.length : 0}</p>
+                    <div class="map-actions">
+                        <button class="btn-small btn-edit" onclick="event.stopPropagation(); editMap('${map.id}')">Bearbeiten</button>
+                        <button class="btn-small btn-delete" onclick="event.stopPropagation(); deleteMap('${map.id}')">Löschen</button>
+                        <button class="btn-small btn-save" onclick="event.stopPropagation(); saveMapToFile('${map.id}')">Exportieren</button>
+                    </div>
+                `;
+                
+                mapList.appendChild(mapItem);
+            });
+        }
+        
+        // Canvas neu zeichnen
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!currentMap) {
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#666';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Wählen Sie eine Karte aus oder erstellen Sie eine neue', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Hintergrund
+            ctx.fillStyle = '#e8f5e8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Raster zeichnen
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            const gridSize = 20;
+            
+            for (let x = 0; x < canvas.width; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y < canvas.height; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+            
+            // Zonen zeichnen
+            if (currentMap.zones) {
+                currentMap.zones.forEach(zone => {
+                    ctx.fillStyle = zone.type === 'mow' ? 'rgba(0, 255, 0, 0.3)' : 'rgba(255, 0, 0, 0.3)';
+                    ctx.strokeStyle = zone.type === 'mow' ? '#00aa00' : '#aa0000';
+                    ctx.lineWidth = 2;
+                    
+                    ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
+                    ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+                    
+                    // Zonennamen
+                    ctx.fillStyle = '#333';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(zone.name || 'Zone', zone.x + zone.width/2, zone.y + zone.height/2);
+                });
+            }
+        }
+        
+        // Karte in Datei exportieren
+        function saveMapToFile(mapId) {
+            const map = maps.find(m => m.id === mapId);
+            if (!map) return;
+            
+            const dataStr = JSON.stringify(map, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `${map.name.replace(/[^a-z0-9]/gi, '_')}.json`;
+            link.click();
+        }
+        
+        // Event Listeners
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentTool === 'zone') {
+                isDrawing = true;
+                const rect = canvas.getBoundingClientRect();
+                startX = e.clientX - rect.left;
+                startY = e.clientY - rect.top;
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.round(e.clientX - rect.left);
+            const y = Math.round(e.clientY - rect.top);
+            document.getElementById('coordinates').textContent = `X: ${x}, Y: ${y}`;
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (isDrawing && currentTool === 'zone' && currentMap) {
+                const rect = canvas.getBoundingClientRect();
+                const endX = e.clientX - rect.left;
+                const endY = e.clientY - rect.top;
+                
+                const zone = {
+                    id: Date.now().toString(),
+                    name: `Zone ${(currentMap.zones || []).length + 1}`,
+                    type: 'mow',
+                    x: Math.min(startX, endX),
+                    y: Math.min(startY, endY),
+                    width: Math.abs(endX - startX),
+                    height: Math.abs(endY - startY)
+                };
+                
+                if (!currentMap.zones) currentMap.zones = [];
+                currentMap.zones.push(zone);
+                
+                // Karte speichern
+                const mapIndex = maps.findIndex(m => m.id === currentMap.id);
+                if (mapIndex >= 0) {
+                    maps[mapIndex] = currentMap;
+                    localStorage.setItem('sunrayMaps', JSON.stringify(maps));
+                }
+                
+                redrawCanvas();
+                isDrawing = false;
+            }
+        });
+        
+        // Formular-Submit
+        document.getElementById('mapForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const mapData = {
+                id: currentMap ? currentMap.id : Date.now().toString(),
+                name: formData.get('mapName'),
+                description: formData.get('mapDescription'),
+                width: parseInt(formData.get('mapWidth')),
+                height: parseInt(formData.get('mapHeight')),
+                zones: currentMap ? currentMap.zones : [],
+                created: currentMap ? currentMap.created : new Date().toISOString(),
+                modified: new Date().toISOString()
+            };
+            
+            if (currentMap) {
+                // Karte aktualisieren
+                const mapIndex = maps.findIndex(m => m.id === currentMap.id);
+                if (mapIndex >= 0) {
+                    maps[mapIndex] = mapData;
+                }
+            } else {
+                // Neue Karte hinzufügen
+                maps.push(mapData);
+            }
+            
+            localStorage.setItem('sunrayMaps', JSON.stringify(maps));
+            loadMapList();
+            closeModal();
+            
+            // Neue Karte laden
+            currentMap = mapData;
+            redrawCanvas();
+        });
+        
+        // Initialisierung
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            loadMapList();
+            
+            // Beispielkarte erstellen, falls keine vorhanden
+            if (maps.length === 0) {
+                const exampleMap = {
+                    id: 'example-1',
+                    name: 'Beispielgarten',
+                    description: 'Ein Beispielgarten mit Mähbereich',
+                    width: 200,
+                    height: 150,
+                    zones: [
+                        {
+                            id: 'zone-1',
+                            name: 'Hauptmähbereich',
+                            type: 'mow',
+                            x: 50,
+                            y: 50,
+                            width: 300,
+                            height: 200
+                        }
+                    ],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+                
+                maps.push(exampleMap);
+                localStorage.setItem('sunrayMaps', JSON.stringify(maps));
+                loadMapList();
+            }
+        });
+        
+        // Modal schließen bei Klick außerhalb
+        document.getElementById('mapModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) {
+                closeModal();
+            }
+        });
+        
+        console.log('Sunray RTK Kartenverwaltung geladen');
+    </script>
+</body>
+</html>

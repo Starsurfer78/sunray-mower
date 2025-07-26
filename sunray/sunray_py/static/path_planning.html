@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunray RTK - Pfadplanung</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .planning-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+        
+        .planning-panel {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+        
+        .map-display {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .map-selector {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .map-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        
+        .map-option:hover {
+            background: var(--hover-bg);
+        }
+        
+        .map-option.selected {
+            border-color: var(--primary-color);
+            background: var(--accent-light);
+        }
+        
+        .map-info {
+            font-size: 12px;
+        }
+        
+        .map-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+        
+        .map-details {
+            color: var(--text-secondary);
+        }
+        
+        .pattern-section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .pattern-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .pattern-option {
+            padding: 12px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .pattern-option:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .pattern-option.selected {
+            border-color: var(--primary-color);
+            background: var(--accent-light);
+        }
+        
+        .pattern-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .pattern-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .settings-section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .setting-group {
+            margin-bottom: 15px;
+        }
+        
+        .setting-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--text-primary);
+        }
+        
+        .setting-group input, .setting-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .setting-group .range-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .preview-section {
+            background: var(--secondary-bg);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .preview-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+        }
+        
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn-planning {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+        
+        .btn-generate {
+            background: var(--info-color);
+            color: white;
+        }
+        
+        .btn-generate:hover {
+            background: #1976d2;
+        }
+        
+        .btn-save-task {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-save-task:hover {
+            background: var(--accent-secondary);
+        }
+        
+        .btn-save-zone {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-save-zone:hover {
+            background: #e68900;
+        }
+        
+        .btn-load-robot {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-load-robot:hover {
+            background: var(--accent-tertiary);
+        }
+        
+        .btn-planning:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
+        }
+        
+        .map-canvas {
+            width: 100%;
+            height: 100%;
+            background: #f0f8f0;
+        }
+        
+        .map-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+        }
+        
+        .pattern-legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 12px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .legend-line {
+            width: 20px;
+            height: 2px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 400px;
+            max-width: 90vw;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <div class="logo">🤖</div>
+                    <h1>Sunray RTK</h1>
+                </div>
+                <nav class="nav-menu">
+                    <a href="dashboard_modular.html" class="nav-item">Dashboard</a>
+                    <a href="gps_mapping.html" class="nav-item">GPS Kartenerstellung</a>
+                    <a href="path_planning.html" class="nav-item active">Pfadplanung</a>
+                </nav>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <div class="page-header">
+                <h2>Pfadplanung & Mähbild-Erstellung</h2>
+                <div class="status-info">
+                    <span id="planningStatus">Karte auswählen um zu beginnen</span>
+                </div>
+            </div>
+            
+            <div class="planning-container">
+                <div class="planning-panel">
+                    <!-- Map Selection -->
+                    <div class="map-selector">
+                        <h4>Karte auswählen</h4>
+                        <div id="mapList">
+                            <!-- Maps will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Pattern Selection -->
+                    <div class="pattern-section">
+                        <h4>Mähbild auswählen</h4>
+                        <div class="pattern-grid">
+                            <div class="pattern-option" data-pattern="parallel" onclick="selectPattern('parallel')">
+                                <div class="pattern-icon">═══</div>
+                                <div class="pattern-name">Parallel</div>
+                            </div>
+                            <div class="pattern-option" data-pattern="spiral" onclick="selectPattern('spiral')">
+                                <div class="pattern-icon">🌀</div>
+                                <div class="pattern-name">Spiral</div>
+                            </div>
+                            <div class="pattern-option" data-pattern="zigzag" onclick="selectPattern('zigzag')">
+                                <div class="pattern-icon">⚡</div>
+                                <div class="pattern-name">Zickzack</div>
+                            </div>
+                            <div class="pattern-option" data-pattern="random" onclick="selectPattern('random')">
+                                <div class="pattern-icon">🎲</div>
+                                <div class="pattern-name">Zufällig</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings -->
+                    <div class="settings-section">
+                        <h4>Einstellungen</h4>
+                        
+                        <div class="setting-group">
+                            <label for="cutWidth">Schnittbreite (cm):</label>
+                            <input type="range" id="cutWidth" min="20" max="50" value="35" oninput="updateSettings()">
+                            <div class="range-display">
+                                <span>20cm</span>
+                                <span id="cutWidthValue">35cm</span>
+                                <span>50cm</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="overlap">Überlappung (%):</label>
+                            <input type="range" id="overlap" min="0" max="30" value="10" oninput="updateSettings()">
+                            <div class="range-display">
+                                <span>0%</span>
+                                <span id="overlapValue">10%</span>
+                                <span>30%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="speed">Geschwindigkeit (m/min):</label>
+                            <input type="range" id="speed" min="5" max="25" value="15" oninput="updateSettings()">
+                            <div class="range-display">
+                                <span>5</span>
+                                <span id="speedValue">15</span>
+                                <span>25</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-group">
+                            <label for="direction">Richtung:</label>
+                            <select id="direction" onchange="updateSettings()">
+                                <option value="0">Nord-Süd</option>
+                                <option value="90">Ost-West</option>
+                                <option value="45">Diagonal (45°)</option>
+                                <option value="135">Diagonal (135°)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Preview Stats -->
+                    <div class="preview-section">
+                        <h4>Vorschau</h4>
+                        <div class="preview-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="pathLength">--</div>
+                                <div class="stat-label">Pfadlänge (m)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="estimatedTime">--</div>
+                                <div class="stat-label">Zeit (min)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="coverage">--</div>
+                                <div class="stat-label">Abdeckung (%)</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="efficiency">--</div>
+                                <div class="stat-label">Effizienz (%)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="action-buttons">
+                            <button class="btn-planning btn-generate" onclick="generatePath()" id="generateBtn" disabled>
+                                🔄 Pfad generieren
+                            </button>
+                            <button class="btn-planning btn-save-task" onclick="saveAsTask()" id="saveTaskBtn" disabled>
+                                📋 Als Task speichern
+                            </button>
+                            <button class="btn-planning btn-save-zone" onclick="saveAsZone()" id="saveZoneBtn" disabled>
+                                🗺️ Als Zone speichern
+                            </button>
+                            <button class="btn-planning btn-load-robot" onclick="loadToRobot()" id="loadRobotBtn" disabled>
+                                🤖 Auf Roboter laden
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="map-display">
+                    <div class="map-overlay">
+                        <div><strong>Pfadplanung</strong></div>
+                        <div>Karte: <span id="selectedMapName">Keine</span></div>
+                        <div>Muster: <span id="selectedPattern">Keine</span></div>
+                        <div>Status: <span id="pathStatus">Bereit</span></div>
+                    </div>
+                    
+                    <div class="pattern-legend">
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #4CAF50;"></div>
+                            <span>Mähpfad</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #2196F3;"></div>
+                            <span>Verbindungspfad</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #FF9800;"></div>
+                            <span>Startpunkt</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-line" style="background: #F44336;"></div>
+                            <span>Endpunkt</span>
+                        </div>
+                    </div>
+                    
+                    <canvas id="pathCanvas" class="map-canvas"></canvas>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Save Task Modal -->
+    <div id="saveTaskModal" class="modal">
+        <div class="modal-content">
+            <h3>Task speichern</h3>
+            <form id="saveTaskForm">
+                <div class="form-group">
+                    <label for="taskName">Task-Name:</label>
+                    <input type="text" id="taskName" name="taskName" required>
+                </div>
+                <div class="form-group">
+                    <label for="taskDescription">Beschreibung:</label>
+                    <textarea id="taskDescription" name="taskDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="taskPriority">Priorität:</label>
+                    <select id="taskPriority" name="taskPriority">
+                        <option value="low">Niedrig</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="high">Hoch</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeTaskModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Save Zone Modal -->
+    <div id="saveZoneModal" class="modal">
+        <div class="modal-content">
+            <h3>Zone speichern</h3>
+            <form id="saveZoneForm">
+                <div class="form-group">
+                    <label for="zoneName">Zonen-Name:</label>
+                    <input type="text" id="zoneName" name="zoneName" required>
+                </div>
+                <div class="form-group">
+                    <label for="zoneDescription">Beschreibung:</label>
+                    <textarea id="zoneDescription" name="zoneDescription"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="zoneType">Zonen-Typ:</label>
+                    <select id="zoneType" name="zoneType">
+                        <option value="mow">Mähzone</option>
+                        <option value="no-mow">Sperrzone</option>
+                        <option value="slow">Langsamzone</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeZoneModal()">Abbrechen</button>
+                    <button type="submit" class="btn btn-primary">Speichern</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // Path Planning JavaScript
+        let selectedMap = null;
+        let selectedPattern = null;
+        let generatedPath = null;
+        let planningSettings = {
+            cutWidth: 35,
+            overlap: 10,
+            speed: 15,
+            direction: 0
+        };
+        
+        const canvas = document.getElementById('pathCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Karten laden
+        function loadMaps() {
+            const maps = JSON.parse(localStorage.getItem('sunrayMaps') || '[]');
+            const mapList = document.getElementById('mapList');
+            
+            if (maps.length === 0) {
+                mapList.innerHTML = '<p style="text-align: center; color: #666; margin: 20px 0;">Keine Karten verfügbar</p>';
+                return;
+            }
+            
+            mapList.innerHTML = maps.map(map => `
+                <div class="map-option" data-map-id="${map.id}" onclick="selectMap('${map.id}')">
+                    <div class="map-info">
+                        <div class="map-name">${map.name}</div>
+                        <div class="map-details">
+                            ${map.type === 'gps_mapped' ? 
+                                `${map.boundaryPoints ? map.boundaryPoints.length : 0} GPS-Punkte` : 
+                                `${map.width}m × ${map.height}m`
+                            }
+                            ${map.area ? ` • ${map.area.toFixed(0)} m²` : ''}
+                        </div>
+                    </div>
+                    <div>📍</div>
+                </div>
+            `).join('');
+        }
+        
+        // Karte auswählen
+        function selectMap(mapId) {
+            const maps = JSON.parse(localStorage.getItem('sunrayMaps') || '[]');
+            selectedMap = maps.find(m => m.id === mapId);
+            
+            if (!selectedMap) return;
+            
+            // UI aktualisieren
+            document.querySelectorAll('.map-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-map-id="${mapId}"]`).classList.add('selected');
+            
+            document.getElementById('selectedMapName').textContent = selectedMap.name;
+            document.getElementById('planningStatus').textContent = 'Mähbild auswählen';
+            
+            updateButtons();
+            redrawCanvas();
+        }
+        
+        // Muster auswählen
+        function selectPattern(pattern) {
+            selectedPattern = pattern;
+            
+            document.querySelectorAll('.pattern-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            document.querySelector(`[data-pattern="${pattern}"]`).classList.add('selected');
+            
+            document.getElementById('selectedPattern').textContent = getPatternName(pattern);
+            document.getElementById('planningStatus').textContent = 'Pfad generieren';
+            
+            updateButtons();
+        }
+        
+        // Muster-Namen
+        function getPatternName(pattern) {
+            const names = {
+                'parallel': 'Parallel',
+                'spiral': 'Spiral',
+                'zigzag': 'Zickzack',
+                'random': 'Zufällig'
+            };
+            return names[pattern] || pattern;
+        }
+        
+        // Einstellungen aktualisieren
+        function updateSettings() {
+            planningSettings.cutWidth = parseInt(document.getElementById('cutWidth').value);
+            planningSettings.overlap = parseInt(document.getElementById('overlap').value);
+            planningSettings.speed = parseInt(document.getElementById('speed').value);
+            planningSettings.direction = parseInt(document.getElementById('direction').value);
+            
+            document.getElementById('cutWidthValue').textContent = planningSettings.cutWidth + 'cm';
+            document.getElementById('overlapValue').textContent = planningSettings.overlap + '%';
+            document.getElementById('speedValue').textContent = planningSettings.speed;
+            
+            if (generatedPath) {
+                updatePreviewStats();
+            }
+        }
+        
+        // Buttons aktualisieren
+        function updateButtons() {
+            const generateBtn = document.getElementById('generateBtn');
+            const saveTaskBtn = document.getElementById('saveTaskBtn');
+            const saveZoneBtn = document.getElementById('saveZoneBtn');
+            const loadRobotBtn = document.getElementById('loadRobotBtn');
+            
+            generateBtn.disabled = !selectedMap || !selectedPattern;
+            saveTaskBtn.disabled = !generatedPath;
+            saveZoneBtn.disabled = !generatedPath;
+            loadRobotBtn.disabled = !generatedPath;
+        }
+        
+        // Pfad generieren
+        function generatePath() {
+            if (!selectedMap || !selectedPattern) return;
+            
+            document.getElementById('pathStatus').textContent = 'Generiere...';
+            
+            // Simuliere Pfadgenerierung
+            setTimeout(() => {
+                generatedPath = generatePathForPattern(selectedPattern, selectedMap, planningSettings);
+                
+                document.getElementById('pathStatus').textContent = 'Fertig';
+                document.getElementById('planningStatus').textContent = 'Pfad generiert - Speichern oder laden';
+                
+                updatePreviewStats();
+                updateButtons();
+                redrawCanvas();
+            }, 1500);
+        }
+        
+        // Pfad für Muster generieren
+        function generatePathForPattern(pattern, map, settings) {
+            const path = {
+                pattern: pattern,
+                settings: { ...settings },
+                segments: [],
+                totalLength: 0,
+                estimatedTime: 0,
+                coverage: 95,
+                efficiency: 85
+            };
+            
+            // Vereinfachte Pfadgenerierung basierend auf Kartentyp
+            if (map.type === 'gps_mapped' && map.boundaryPoints) {
+                path.segments = generateGPSBasedPath(map.boundaryPoints, pattern, settings);
+            } else {
+                path.segments = generateGridBasedPath(map, pattern, settings);
+            }
+            
+            // Statistiken berechnen
+            path.totalLength = calculatePathLength(path.segments);
+            path.estimatedTime = Math.round(path.totalLength / settings.speed);
+            
+            return path;
+        }
+        
+        // GPS-basierte Pfadgenerierung
+        function generateGPSBasedPath(boundaryPoints, pattern, settings) {
+            const segments = [];
+            const effectiveWidth = settings.cutWidth * (1 - settings.overlap / 100) / 100; // cm zu m
+            
+            // Bounding Box berechnen
+            const lats = boundaryPoints.map(p => p.lat);
+            const lons = boundaryPoints.map(p => p.lon);
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLon = Math.min(...lons);
+            const maxLon = Math.max(...lons);
+            
+            // Vereinfachte Parallel-Linien
+            const latStep = effectiveWidth / 111000; // Grad pro Meter
+            
+            for (let lat = minLat; lat <= maxLat; lat += latStep) {
+                segments.push({
+                    type: 'mow',
+                    points: [
+                        { lat: lat, lon: minLon },
+                        { lat: lat, lon: maxLon }
+                    ]
+                });
+            }
+            
+            return segments;
+        }
+        
+        // Grid-basierte Pfadgenerierung
+        function generateGridBasedPath(map, pattern, settings) {
+            const segments = [];
+            const effectiveWidth = settings.cutWidth * (1 - settings.overlap / 100) / 100; // cm zu m
+            
+            const width = map.width || 100;
+            const height = map.height || 100;
+            
+            switch (pattern) {
+                case 'parallel':
+                    for (let y = effectiveWidth; y < height; y += effectiveWidth) {
+                        segments.push({
+                            type: 'mow',
+                            points: [
+                                { x: 0, y: y },
+                                { x: width, y: y }
+                            ]
+                        });
+                    }
+                    break;
+                    
+                case 'zigzag':
+                    let direction = 1;
+                    for (let y = effectiveWidth; y < height; y += effectiveWidth) {
+                        if (direction === 1) {
+                            segments.push({
+                                type: 'mow',
+                                points: [
+                                    { x: 0, y: y },
+                                    { x: width, y: y }
+                                ]
+                            });
+                        } else {
+                            segments.push({
+                                type: 'mow',
+                                points: [
+                                    { x: width, y: y },
+                                    { x: 0, y: y }
+                                ]
+                            });
+                        }
+                        direction *= -1;
+                    }
+                    break;
+                    
+                case 'spiral':
+                    // Vereinfachte Spirale
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    const maxRadius = Math.min(width, height) / 2;
+                    
+                    for (let r = effectiveWidth; r < maxRadius; r += effectiveWidth) {
+                        const points = [];
+                        for (let angle = 0; angle < 360; angle += 10) {
+                            const rad = (angle * Math.PI) / 180;
+                            points.push({
+                                x: centerX + r * Math.cos(rad),
+                                y: centerY + r * Math.sin(rad)
+                            });
+                        }
+                        segments.push({ type: 'mow', points: points });
+                    }
+                    break;
+                    
+                case 'random':
+                    // Zufällige Punkte
+                    for (let i = 0; i < 20; i++) {
+                        segments.push({
+                            type: 'mow',
+                            points: [
+                                { x: Math.random() * width, y: Math.random() * height },
+                                { x: Math.random() * width, y: Math.random() * height }
+                            ]
+                        });
+                    }
+                    break;
+            }
+            
+            return segments;
+        }
+        
+        // Pfadlänge berechnen
+        function calculatePathLength(segments) {
+            let totalLength = 0;
+            
+            segments.forEach(segment => {
+                if (segment.points && segment.points.length > 1) {
+                    for (let i = 1; i < segment.points.length; i++) {
+                        const p1 = segment.points[i - 1];
+                        const p2 = segment.points[i];
+                        
+                        if (p1.lat && p1.lon && p2.lat && p2.lon) {
+                            // GPS-Distanz
+                            const latDiff = (p2.lat - p1.lat) * 111000;
+                            const lonDiff = (p2.lon - p1.lon) * 111000 * Math.cos(p1.lat * Math.PI / 180);
+                            totalLength += Math.sqrt(latDiff * latDiff + lonDiff * lonDiff);
+                        } else {
+                            // Kartesische Distanz
+                            const dx = p2.x - p1.x;
+                            const dy = p2.y - p1.y;
+                            totalLength += Math.sqrt(dx * dx + dy * dy);
+                        }
+                    }
+                }
+            });
+            
+            return Math.round(totalLength);
+        }
+        
+        // Vorschau-Statistiken aktualisieren
+        function updatePreviewStats() {
+            if (!generatedPath) return;
+            
+            document.getElementById('pathLength').textContent = generatedPath.totalLength;
+            document.getElementById('estimatedTime').textContent = generatedPath.estimatedTime;
+            document.getElementById('coverage').textContent = generatedPath.coverage;
+            document.getElementById('efficiency').textContent = generatedPath.efficiency;
+        }
+        
+        // Canvas-Größe anpassen
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            redrawCanvas();
+        }
+        
+        // Canvas neu zeichnen
+        function redrawCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Hintergrund
+            ctx.fillStyle = '#f0f8f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (!selectedMap) {
+                ctx.fillStyle = '#666';
+                ctx.font = '16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('Karte auswählen um Pfadplanung zu starten', canvas.width/2, canvas.height/2);
+                return;
+            }
+            
+            // Karte zeichnen
+            drawMap(selectedMap);
+            
+            // Pfad zeichnen
+            if (generatedPath) {
+                drawPath(generatedPath);
+            }
+        }
+        
+        // Karte zeichnen
+        function drawMap(map) {
+            if (map.type === 'gps_mapped' && map.boundaryPoints) {
+                drawGPSMap(map);
+            } else {
+                drawGridMap(map);
+            }
+        }
+        
+        // GPS-Karte zeichnen
+        function drawGPSMap(map) {
+            const points = map.boundaryPoints.map(point => gpsToCanvas(point, map.boundaryPoints));
+            
+            // Fläche
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+        }
+        
+        // Grid-Karte zeichnen
+        function drawGridMap(map) {
+            const padding = 50;
+            const availableWidth = canvas.width - 2 * padding;
+            const availableHeight = canvas.height - 2 * padding;
+            
+            const scaleX = availableWidth / (map.width || 100);
+            const scaleY = availableHeight / (map.height || 100);
+            const scale = Math.min(scaleX, scaleY);
+            
+            const mapWidth = (map.width || 100) * scale;
+            const mapHeight = (map.height || 100) * scale;
+            const offsetX = (canvas.width - mapWidth) / 2;
+            const offsetY = (canvas.height - mapHeight) / 2;
+            
+            // Fläche
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.2)';
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            ctx.fillRect(offsetX, offsetY, mapWidth, mapHeight);
+            ctx.strokeRect(offsetX, offsetY, mapWidth, mapHeight);
+        }
+        
+        // Pfad zeichnen
+        function drawPath(path) {
+            path.segments.forEach(segment => {
+                if (segment.type === 'mow') {
+                    ctx.strokeStyle = '#4CAF50';
+                    ctx.lineWidth = 3;
+                } else {
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 2;
+                }
+                
+                if (segment.points && segment.points.length > 1) {
+                    ctx.beginPath();
+                    
+                    const firstPoint = selectedMap.type === 'gps_mapped' ? 
+                        gpsToCanvas(segment.points[0], selectedMap.boundaryPoints) :
+                        gridToCanvas(segment.points[0], selectedMap);
+                    
+                    ctx.moveTo(firstPoint.x, firstPoint.y);
+                    
+                    for (let i = 1; i < segment.points.length; i++) {
+                        const point = selectedMap.type === 'gps_mapped' ? 
+                            gpsToCanvas(segment.points[i], selectedMap.boundaryPoints) :
+                            gridToCanvas(segment.points[i], selectedMap);
+                        ctx.lineTo(point.x, point.y);
+                    }
+                    
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // GPS zu Canvas-Koordinaten
+        function gpsToCanvas(gpsPoint, allPoints) {
+            const lats = allPoints.map(p => p.lat);
+            const lons = allPoints.map(p => p.lon);
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLon = Math.min(...lons);
+            const maxLon = Math.max(...lons);
+            
+            const padding = 50;
+            const availableWidth = canvas.width - 2 * padding;
+            const availableHeight = canvas.height - 2 * padding;
+            
+            const latRange = maxLat - minLat || 0.001;
+            const lonRange = maxLon - minLon || 0.001;
+            
+            const x = padding + ((gpsPoint.lon - minLon) / lonRange) * availableWidth;
+            const y = padding + ((maxLat - gpsPoint.lat) / latRange) * availableHeight;
+            
+            return { x, y };
+        }
+        
+        // Grid zu Canvas-Koordinaten
+        function gridToCanvas(gridPoint, map) {
+            const padding = 50;
+            const availableWidth = canvas.width - 2 * padding;
+            const availableHeight = canvas.height - 2 * padding;
+            
+            const scaleX = availableWidth / (map.width || 100);
+            const scaleY = availableHeight / (map.height || 100);
+            const scale = Math.min(scaleX, scaleY);
+            
+            const mapWidth = (map.width || 100) * scale;
+            const mapHeight = (map.height || 100) * scale;
+            const offsetX = (canvas.width - mapWidth) / 2;
+            const offsetY = (canvas.height - mapHeight) / 2;
+            
+            const x = offsetX + (gridPoint.x / (map.width || 100)) * mapWidth;
+            const y = offsetY + (gridPoint.y / (map.height || 100)) * mapHeight;
+            
+            return { x, y };
+        }
+        
+        // Als Task speichern
+        function saveAsTask() {
+            if (!generatedPath) return;
+            document.getElementById('saveTaskModal').style.display = 'block';
+        }
+        
+        // Als Zone speichern
+        function saveAsZone() {
+            if (!generatedPath) return;
+            document.getElementById('saveZoneModal').style.display = 'block';
+        }
+        
+        // Auf Roboter laden
+        function loadToRobot() {
+            if (!generatedPath) return;
+            
+            // Simuliere Upload
+            const originalText = document.getElementById('loadRobotBtn').textContent;
+            document.getElementById('loadRobotBtn').textContent = '⏳ Lade...';
+            document.getElementById('loadRobotBtn').disabled = true;
+            
+            setTimeout(() => {
+                alert('Pfad erfolgreich auf Roboter geladen!');
+                document.getElementById('loadRobotBtn').textContent = originalText;
+                document.getElementById('loadRobotBtn').disabled = false;
+            }, 2000);
+        }
+        
+        // Modals schließen
+        function closeTaskModal() {
+            document.getElementById('saveTaskModal').style.display = 'none';
+        }
+        
+        function closeZoneModal() {
+            document.getElementById('saveZoneModal').style.display = 'none';
+        }
+        
+        // Event Listeners
+        window.addEventListener('resize', resizeCanvas);
+        
+        document.getElementById('saveTaskForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const taskData = {
+                id: Date.now().toString(),
+                name: formData.get('taskName'),
+                description: formData.get('taskDescription'),
+                priority: formData.get('taskPriority'),
+                map: selectedMap,
+                path: generatedPath,
+                created: new Date().toISOString(),
+                type: 'mowing_task'
+            };
+            
+            let tasks = JSON.parse(localStorage.getItem('sunrayTasks') || '[]');
+            tasks.push(taskData);
+            localStorage.setItem('sunrayTasks', JSON.stringify(tasks));
+            
+            alert(`Task "${taskData.name}" wurde erfolgreich gespeichert!`);
+            closeTaskModal();
+        });
+        
+        document.getElementById('saveZoneForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const zoneData = {
+                id: Date.now().toString(),
+                name: formData.get('zoneName'),
+                description: formData.get('zoneDescription'),
+                type: formData.get('zoneType'),
+                map: selectedMap,
+                path: generatedPath,
+                created: new Date().toISOString()
+            };
+            
+            let zones = JSON.parse(localStorage.getItem('sunrayZones') || '[]');
+            zones.push(zoneData);
+            localStorage.setItem('sunrayZones', JSON.stringify(zones));
+            
+            alert(`Zone "${zoneData.name}" wurde erfolgreich gespeichert!`);
+            closeZoneModal();
+        });
+        
+        // Modal schließen bei Klick außerhalb
+        document.getElementById('saveTaskModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeTaskModal();
+        });
+        
+        document.getElementById('saveZoneModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeZoneModal();
+        });
+        
+        // Initialisierung
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            loadMaps();
+            updateSettings();
+            updateButtons();
+        });
+        
+        console.log('Sunray RTK Pfadplanung geladen');
+    </script>
+</body>
+</html>

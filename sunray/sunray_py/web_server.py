@@ -72,6 +72,16 @@ def index():
     """Hauptseite des Web Interfaces."""
     return send_from_directory('static', 'index.html')
 
+@app.route('/map-editor')
+def map_editor():
+    """Kartenverwaltungsseite."""
+    return send_from_directory('static', 'map_editor.html')
+
+@app.route('/path-planning')
+def path_planning():
+    """Pfadplanungsseite."""
+    return send_from_directory('static', 'path_planning.html')
+
 @app.route('/api/status')
 def api_status():
     """API Status für Verbindungscheck."""
@@ -580,6 +590,207 @@ def generate_mock_path(pattern: str, num_segments: int) -> List[Dict[str, float]
             path.append({'x': x, 'y': y})
     
     return path
+
+# Mapping API Endpoints
+@app.route('/api/mapping/maps', methods=['GET'])
+def get_mapping_maps():
+    """Gibt verfügbare Karten zurück."""
+    try:
+        maps = [
+            {
+                'id': 1,
+                'name': 'Hauptkarte',
+                'created': '2024-01-15T10:30:00',
+                'size': '250x200m',
+                'zones': 3
+            },
+            {
+                'id': 2,
+                'name': 'Vorgarten',
+                'created': '2024-01-20T14:15:00',
+                'size': '100x80m',
+                'zones': 1
+            }
+        ]
+        return jsonify(maps)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mapping/data', methods=['GET'])
+def get_mapping_data():
+    """Gibt aktuelle Kartierungsdaten zurück."""
+    try:
+        # Simuliere Kartierungsdaten
+        data = {
+            'robot_position': {
+                'x': random.uniform(60, 190),
+                'y': random.uniform(60, 140),
+                'heading': random.uniform(0, 360)
+            },
+            'mapped_area': random.uniform(150, 300),
+            'path_length': random.uniform(50, 200),
+            'mapping_active': random.choice([True, False]),
+            'mapping_time': random.randint(0, 3600),
+            'boundaries': [
+                {'x': 50, 'y': 50},
+                {'x': 200, 'y': 50},
+                {'x': 200, 'y': 150},
+                {'x': 50, 'y': 150}
+            ],
+            'obstacles': [
+                {'x': 120, 'y': 80, 'size': 5},
+                {'x': 160, 'y': 110, 'size': 3}
+            ]
+        }
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/mapping/start', methods=['POST'])
+def start_mapping():
+    """Startet die Kartierung."""
+    try:
+        return jsonify({
+            'success': True,
+            'message': 'Kartierung gestartet',
+            'status': 'active'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mapping/stop', methods=['POST'])
+def stop_mapping():
+    """Stoppt die Kartierung."""
+    try:
+        return jsonify({
+            'success': True,
+            'message': 'Kartierung gestoppt',
+            'status': 'stopped'
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# Tasks API Endpoints
+@app.route('/api/tasks', methods=['GET', 'POST'])
+def manage_tasks():
+    """Verwaltet Aufgaben."""
+    tasks_file = 'tasks.json'
+    
+    if request.method == 'GET':
+        try:
+            if os.path.exists(tasks_file):
+                with open(tasks_file, 'r') as f:
+                    tasks = json.load(f)
+            else:
+                # Standard-Aufgaben
+                tasks = [
+                    {
+                        'id': 1,
+                        'name': 'Morgendliches Mähen',
+                        'schedule': '08:00',
+                        'zone': 'Hauptbereich',
+                        'pattern': 'lines',
+                        'status': 'active',
+                        'created': datetime.now().isoformat()
+                    },
+                    {
+                        'id': 2,
+                        'name': 'Wöchentliche Reinigung',
+                        'schedule': 'weekly',
+                        'zone': 'Alle Bereiche',
+                        'pattern': 'spiral',
+                        'status': 'scheduled',
+                        'created': datetime.now().isoformat()
+                    }
+                ]
+            return jsonify(tasks)
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+    
+    elif request.method == 'POST':
+        try:
+            task = request.get_json()
+            
+            # Lade bestehende Aufgaben
+            tasks = []
+            if os.path.exists(tasks_file):
+                with open(tasks_file, 'r') as f:
+                    tasks = json.load(f)
+            
+            # Füge neue Aufgabe hinzu
+            task['id'] = len(tasks) + 1
+            task['created'] = datetime.now().isoformat()
+            task['status'] = 'scheduled'
+            tasks.append(task)
+            
+            # Speichere Aufgaben
+            with open(tasks_file, 'w') as f:
+                json.dump(tasks, f, indent=2)
+            
+            return jsonify({'status': 'created', 'task': task})
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/tasks/<int:task_id>', methods=['DELETE', 'PUT'])
+def manage_single_task(task_id):
+    """Verwaltet einzelne Aufgaben."""
+    tasks_file = 'tasks.json'
+    
+    try:
+        # Lade Aufgaben
+        tasks = []
+        if os.path.exists(tasks_file):
+            with open(tasks_file, 'r') as f:
+                tasks = json.load(f)
+        
+        if request.method == 'DELETE':
+            tasks = [t for t in tasks if t.get('id') != task_id]
+            
+            with open(tasks_file, 'w') as f:
+                json.dump(tasks, f, indent=2)
+            
+            return jsonify({'status': 'deleted', 'task_id': task_id})
+        
+        elif request.method == 'PUT':
+            updated_task = request.get_json()
+            
+            for i, task in enumerate(tasks):
+                if task.get('id') == task_id:
+                    tasks[i].update(updated_task)
+                    break
+            
+            with open(tasks_file, 'w') as f:
+                json.dump(tasks, f, indent=2)
+            
+            return jsonify({'status': 'updated', 'task_id': task_id})
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Dashboard API Endpoints
+@app.route('/api/dashboard/stats', methods=['GET'])
+def get_dashboard_stats():
+    """Gibt Dashboard-Statistiken zurück."""
+    try:
+        stats = {
+            'total_runtime': random.randint(1000, 5000),
+            'area_mowed': random.uniform(500, 2000),
+            'battery_cycles': random.randint(50, 200),
+            'maintenance_due': random.choice([True, False]),
+            'weather': {
+                'temperature': random.uniform(15, 30),
+                'humidity': random.uniform(40, 80),
+                'condition': random.choice(['sunny', 'cloudy', 'rainy'])
+            },
+            'performance': {
+                'efficiency': random.uniform(85, 98),
+                'coverage': random.uniform(90, 99),
+                'energy_usage': random.uniform(20, 40)
+            }
+        }
+        return jsonify(stats)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Import math for spiral pattern
 import math
