@@ -1,0 +1,154 @@
+{
+  "_description": "Sunray Python Mähroboter Konfiguration - Alle Einstellungen mit Beschreibungen und Beispielen",
+  "_version": "1.0",
+  "_last_updated": "2024-01-01",
+  
+  "motor": {
+    "_description": "Motor-Steuerung und PID-Regelung für Antrieb und Mähwerk",
+    
+    "pid": {
+      "_description": "PID-Regler Parameter für präzise Motorsteuerung",
+      "_note": "Höhere Kp = stärkere Reaktion, höhere Ki = weniger Steady-State-Fehler, höhere Kd = weniger Überschwingen",
+      
+      "left": {
+        "_description": "PID-Parameter für linken Antriebsmotor",
+        "kp": 1.0,
+        "_kp_description": "Proportionalfaktor (0.5-2.0) - Grundverstärkung der Regelung",
+        "ki": 0.1,
+        "_ki_description": "Integralfaktor (0.01-0.5) - Eliminiert bleibende Regelabweichung",
+        "kd": 0.05,
+        "_kd_description": "Differentialfaktor (0.01-0.2) - Dämpft Überschwingen",
+        "output_min": -255,
+        "_output_min_description": "Minimaler PWM-Wert für Rückwärtsfahrt (-255 bis 0)",
+        "output_max": 255,
+        "_output_max_description": "Maximaler PWM-Wert für Vorwärtsfahrt (0 bis 255)"
+      },
+      
+      "right": {
+        "_description": "PID-Parameter für rechten Antriebsmotor",
+        "kp": 1.0,
+        "_kp_description": "Proportionalfaktor (0.5-2.0) - Sollte identisch zum linken Motor sein",
+        "ki": 0.1,
+        "_ki_description": "Integralfaktor (0.01-0.5) - Für symmetrische Fahrt",
+        "kd": 0.05,
+        "_kd_description": "Differentialfaktor (0.01-0.2) - Stabilisiert Geradeausfahrt",
+        "output_min": -255,
+        "output_max": 255
+      },
+      
+      "mow": {
+        "_description": "PID-Parameter für Mähmotor (nur Vorwärtsrichtung)",
+        "kp": 0.8,
+        "_kp_description": "Proportionalfaktor (0.3-1.5) - Niedriger für sanfte Mähwerk-Regelung",
+        "ki": 0.05,
+        "_ki_description": "Integralfaktor (0.01-0.2) - Hält konstante Mähgeschwindigkeit",
+        "kd": 0.02,
+        "_kd_description": "Differentialfaktor (0.005-0.1) - Verhindert Mähwerk-Schwingungen",
+        "output_min": 0,
+        "_output_min_description": "Mähmotor läuft nur vorwärts (immer 0)",
+        "output_max": 255,
+        "_output_max_description": "Maximale Mähgeschwindigkeit (100-255)"
+      }
+    },
+    
+    "limits": {
+      "_description": "Sicherheitsgrenzwerte für Motorschutz",
+      "max_motor_current": 3.0,
+      "_max_motor_current_description": "Maximaler Strom pro Antriebsmotor in Ampere (2.0-5.0A je nach Motor)",
+      "_max_motor_current_example": "Beispiel: 3.0A für 12V Getriebemotoren, 5.0A für stärkere Motoren",
+      "max_mow_current": 5.0,
+      "_max_mow_current_description": "Maximaler Mähmotor-Strom in Ampere (3.0-8.0A je nach Mähwerk)",
+      "_max_mow_current_example": "Beispiel: 5.0A für Standard-Mähwerk, 8.0A für schweres Gelände",
+      "max_overload_count": 5,
+      "_max_overload_count_description": "Anzahl aufeinanderfolgender Überlastungen vor Notaus (3-10)",
+      "max_realistic_speed": 2.0,
+      "_max_realistic_speed_description": "Maximale realistische Geschwindigkeit in m/s (1.0-3.0)",
+      "_max_realistic_speed_example": "Beispiel: 2.0 m/s = 7.2 km/h für normale Mähgeschwindigkeit"
+    },
+    
+    "physical": {
+      "_description": "Physikalische Parameter des Mähroboters",
+      "ticks_per_meter": 1000,
+      "_ticks_per_meter_description": "Encoder-Impulse pro Meter Fahrstrecke (500-2000)",
+      "_ticks_per_meter_calibration": "Kalibrierung: Messe 1m Fahrstrecke und zähle Encoder-Impulse",
+      "wheel_base": 0.3,
+      "_wheel_base_description": "Radstand in Metern - Abstand zwischen linkem und rechtem Rad (0.2-0.5m)",
+      "_wheel_base_example": "Beispiel: 0.3m = 30cm typischer Radstand für mittelgroße Mähroboter",
+      "pwm_scale_factor": 100,
+      "_pwm_scale_factor_description": "Skalierungsfaktor für PWM-Werte (50-200)",
+      "_pwm_scale_factor_note": "Höhere Werte = langsamere Motoren, niedrigere Werte = schnellere Motoren"
+    },
+    
+    "mow": {
+      "_description": "Mähmotor-spezifische Einstellungen",
+      "default_pwm": 100,
+      "_default_pwm_description": "Standard-PWM für Mähmotor (50-200)",
+      "_default_pwm_example": "Beispiel: 100 = mittlere Geschwindigkeit, 150 = höhere Geschwindigkeit für dichtes Gras",
+      "min_current_threshold": 0.1,
+      "_min_current_threshold_description": "Minimaler Strom für Mähwerk-Erkennung in Ampere (0.05-0.3A)",
+      "_min_current_threshold_note": "Unter diesem Wert gilt das Mähwerk als stillstehend",
+      "max_current_threshold": 0.5,
+      "_max_current_threshold_description": "Maximaler Normalstrom für Mähwerk in Ampere (0.3-1.0A)",
+      "_max_current_threshold_note": "Über diesem Wert gilt das Mähwerk als überlastet"
+    },
+    
+    "adaptive": {
+      "_description": "Adaptive Geschwindigkeitsanpassung basierend auf Motorlast",
+      "enabled": true,
+      "_enabled_description": "Aktiviert automatische Geschwindigkeitsreduzierung bei hoher Last",
+      "current_threshold_factor": 0.7,
+      "_current_threshold_factor_description": "Schwellenwert als Faktor von max_motor_current (0.5-0.9)",
+      "_current_threshold_factor_example": "Beispiel: 0.7 * 3.0A = 2.1A Schwelle für Geschwindigkeitsreduzierung",
+      "min_speed_factor": 0.3,
+      "_min_speed_factor_description": "Minimaler Geschwindigkeitsfaktor bei maximaler Last (0.2-0.6)",
+      "_min_speed_factor_example": "Beispiel: 0.3 = Geschwindigkeit wird auf 30% reduziert bei Überlast"
+    }
+  },
+  
+  "system": {
+    "_description": "Allgemeine Systemeinstellungen",
+    "debug": false,
+    "_debug_description": "Aktiviert erweiterte Debug-Ausgaben (true/false)",
+    "_debug_note": "Nur für Entwicklung aktivieren - erzeugt viele Log-Nachrichten",
+    "log_level": "INFO",
+    "_log_level_description": "Log-Level: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+    "_log_level_example": "INFO = normale Betriebsmeldungen, DEBUG = alle Details",
+    "mqtt_enabled": true,
+    "_mqtt_enabled_description": "Aktiviert MQTT-Kommunikation für Fernüberwachung",
+    "web_gui_enabled": true,
+    "_web_gui_enabled_description": "Aktiviert Web-Interface für Konfiguration und Überwachung"
+  },
+  
+  "safety": {
+    "_description": "Sicherheitsfunktionen und Notfall-Systeme",
+    "emergency_stop_enabled": true,
+    "_emergency_stop_description": "Aktiviert Notaus-Funktion bei kritischen Fehlern",
+    "lift_detection_enabled": true,
+    "_lift_detection_description": "Stoppt Mähroboter wenn er angehoben wird",
+    "tilt_detection_enabled": true,
+    "_tilt_detection_description": "Stoppt Mähroboter bei zu starker Neigung",
+    "max_tilt_angle": 30.0,
+    "_max_tilt_angle_description": "Maximaler Neigungswinkel in Grad (15-45°)",
+    "_max_tilt_angle_example": "Beispiel: 30° = steile Böschung, 15° = flaches Gelände"
+  },
+  
+  "navigation": {
+    "_description": "Navigationssysteme und Sensoren",
+    "gps_enabled": true,
+    "_gps_description": "Aktiviert GPS/RTK für präzise Positionierung",
+    "imu_enabled": true,
+    "_imu_description": "Aktiviert Inertialmesseinheit für Orientierung",
+    "obstacle_detection_enabled": true,
+    "_obstacle_detection_description": "Aktiviert Hinderniserkennung (Ultraschall/Lidar)"
+  },
+  
+  "_configuration_notes": {
+    "_description": "Wichtige Hinweise zur Konfiguration",
+    "calibration": "Führe nach Änderungen an physikalischen Parametern eine Kalibrierfahrt durch",
+    "backup": "Erstelle vor Änderungen ein Backup dieser Datei",
+    "testing": "Teste neue Einstellungen zunächst in sicherem Bereich",
+    "motor_matching": "Linker und rechter Motor sollten identische PID-Parameter haben",
+    "current_limits": "Stromgrenzwerte an verwendete Motoren anpassen",
+    "safety_first": "Sicherheitsfunktionen nur in kontrollierten Tests deaktivieren"
+  }
+}

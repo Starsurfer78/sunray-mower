@@ -1,0 +1,12 @@
+adafruit-circuitpython-bno08x
+adafruit-circuitpython-busdevice
+smbus2
+pyserial
+gpsdclient
+RPi.GPIO
+paho-mqtt
+Flask
+python-can
+bleak
+pynmea2
+pyubx2
