@@ -85,8 +85,15 @@ Test-Suite für alle Komponenten:
 
 ### 📚 `docs/`
 Detaillierte technische Dokumentation:
+- `README.md` - Hauptdokumentation des Projekts
 - `MOTOR_CONFIG.md` - Motor-Konfiguration
 - `MOTOR_INTEGRATION.md` - Motor-Integration
+- `BUTTON_FUNCTIONALITY.md` - Button-System Dokumentation
+- `BUZZER_FEEDBACK_DOCUMENTATION.md` - Buzzer-Feedback System
+- `CONFIG_README.md` - Konfigurationssystem Anleitung
+- `ENHANCED_NAVIGATION_INTEGRATION.md` - Erweiterte Navigation
+- `README_ENHANCED_ESCAPE.md` - Enhanced Escape System
+- `TODO.md` - Aufgabenliste und geplante Features
 - `analysis/` - Systemanalysen
 - `implementation/` - Implementierungsdetails
 - `project/` - Projektdokumentation
