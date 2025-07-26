@@ -39,15 +39,12 @@ sunray/
 │   ├── web_server.py       # 🆕 HTTP/API Server
 │   ├── static/             # 🆕 Web-Interface Dateien
 │   │   ├── index.html      # Startseite (Weiterleitung)
-│   │   ├── dashboard.html  # Dashboard-Unterseite
-│   │   ├── mapping.html    # Kartierungs-Unterseite
-│   │   ├── tasks.html      # Aufgaben-Unterseite
-│   │   ├── settings.html   # Einstellungs-Unterseite
-│   │   ├── system.html     # System-Unterseite
-│   │   ├── updates.html    # Update-Unterseite
-│   │   ├── info.html       # Info-Unterseite
-│   │   ├── style.css       # CSS-Styles
-│   │   └── app.js          # JavaScript-Funktionalität
+│   │   ├── dashboard_modular.html # 🆕 Hauptdashboard
+│   │   ├── gps_mapping.html # 🆕 GPS-Kartenerstellung mit Hindernissen
+│   │   ├── path_planning.html # 🆕 Intelligente Pfadplanung
+│   │   ├── map_editor.html # Kartenverwaltung (Legacy)
+│   │   └── css/
+│   │       └── styles.css  # 🆕 Moderne CSS-Styles
 │   ├── ENHANCED_NAVIGATION_INTEGRATION.md # 🆕 Enhanced System Dokumentation
 │   ├── BUZZER_FEEDBACK_DOCUMENTATION.md # 🆕 Buzzer-System Dokumentation
 │   └── tests/              # Unit-Tests
@@ -57,17 +54,23 @@ sunray/
 
 ## 🚀 Neueste Updates
 
+### Version 2024.2 - GPS-Kartenerstellung und Pfadplanung
+- ✅ **GPS-Kartenerstellung**: Vollständig neue Seite für interaktive Kartenerstellung mit GPS-Punkten
+- ✅ **Hindernismanagement**: Einzeichnen und Verwaltung von Hindernissen nach Kartenerstellung
+- ✅ **Intelligente Pfadplanung**: Verschiedene Mähbild-Algorithmen (Parallel, Spiral, Zickzack, Zufällig)
+- ✅ **Echtzeit-Vorschau**: Live-Visualisierung von Pfaden mit detaillierten Statistiken
+- ✅ **Docking-Integration**: Automatische Pfadplanung zur Ladestation
+- ✅ **Modulares Web-Interface**: Saubere Navigation zwischen Dashboard, Kartenerstellung und Pfadplanung
+- ✅ **Responsive Design**: Optimiert für Desktop und mobile Geräte
+
 ### Version 2024.1 - Header Attribution Update
-- ✅ **Projektattribution**: Alle Dateien enthalten jetzt Header-Kommentare mit Verweis auf das ursprüngliche Ardumower Sunray Projekt
+- ✅ **Projektattribution**: Alle Dateien enthalten Header-Kommentare mit Verweis auf das ursprüngliche Ardumower Sunray Projekt
 - ✅ **Lizenz-Compliance**: GPL-3.0 Lizenzinformationen in allen Quelldateien
 - ✅ **Copyright-Würdigung**: Angemessene Anerkennung von Alexander Grau und Grau GmbH
-- ✅ **GitHub-Integration**: Vollständige Dokumentation und Repository-Updates
-- ✅ **15 Dateien aktualisiert**: Python, HTML, CSS und JavaScript Dateien
 
 ### Commit-Historie
+- `🗺️ Add comprehensive GPS mapping and path planning system with obstacle support` - Neue Kartenerstellungs- und Pfadplanungsfunktionen
 - `📄 Add Ardumower Sunray project attribution headers to all files` - Vollständige Header-Attribution
-- Respektvolle Würdigung der ursprünglichen Entwickler
-- Einhaltung der Open-Source-Lizenzbestimmungen
 
 ## Features
 
@@ -97,14 +100,14 @@ sunray/
 - **Mock-Hardware-Unterstützung**: Entwicklung ohne echten Buzzer möglich
 - **Konfigurierbare Töne**: Anpassbare Frequenzen und Dauern
 
-### 🌐 Modulares Web-Interface (NEU!)
-- **Separate Unterseiten**: Dashboard, Kartierung, Aufgaben, Einstellungen, System, Updates, Info
-- **Responsive Design**: Optimiert für Desktop und mobile Geräte
-- **Live-Daten**: Echtzeit-Updates von Sensordaten und Roboterstatus
-- **Interaktive Karten**: Live-Kartierung und Pfadvisualisierung
-- **Aufgabenverwaltung**: Planung und Überwachung von Mähaufgaben
-- **Umfassende Einstellungen**: Konfiguration aller Roboter-Parameter
-- **System-Monitoring**: Hardware-Status und Diagnose-Tools
+### 🌐 GPS-Kartenerstellung und Pfadplanung (NEU!)
+- **GPS-basierte Kartenerstellung**: Interaktive Erstellung von Mähflächen mit GPS-Punkten
+- **Hindernismanagement**: Einzeichnen und Verwaltung von Hindernissen auf der Karte
+- **Intelligente Pfadplanung**: Verschiedene Mähbild-Algorithmen (Parallel, Spiral, Zickzack, Zufällig)
+- **Echtzeit-Vorschau**: Live-Visualisierung von Pfaden mit Statistiken
+- **Docking-Station Integration**: Automatische Pfadplanung zur Ladestation
+- **Responsive Web-Interface**: Optimiert für Desktop und mobile Geräte
+- **Modulares Design**: Saubere Trennung von Kartenerstellung und Pfadplanung
 
 ## Installation
 
@@ -171,28 +174,39 @@ python -m pytest tests/ -v
 
 ### Web-Interface verwenden
 
-Das modulare Web-Interface ist über HTTP erreichbar:
+Das GPS-Kartenerstellungs- und Pfadplanungssystem ist über den integrierten Web-Server erreichbar:
 
 ```bash
-# HTTP-Server für statische Dateien starten
-cd sunray/sunray_py/static
-python -m http.server 8080
+# Web-Server starten
+cd sunray/sunray_py
+python web_server.py
 ```
 
-**Verfügbare Unterseiten:**
-- **Dashboard** (`dashboard.html`): Hauptübersicht mit Live-Kamera, Echtzeitkarte und Schnellsteuerung
-- **Kartierung** (`mapping.html`): Kartenerstellung und -verwaltung
-- **Aufgaben** (`tasks.html`): Mähaufgaben planen und überwachen
-- **Einstellungen** (`settings.html`): Roboter-Konfiguration
-- **System** (`system.html`): Hardware-Status und Diagnose
-- **Updates** (`updates.html`): Software-Update-Verwaltung
-- **Info** (`info.html`): Hilfe und Systeminformationen
+**Verfügbare Seiten:**
+- **Dashboard** (`http://localhost:5000/static/dashboard_modular.html`): Hauptübersicht mit Systemstatus und Navigation
+- **GPS-Kartenerstellung** (`http://localhost:5000/static/gps_mapping.html`): Interaktive Kartenerstellung mit GPS-Punkten und Hindernissen
+- **Pfadplanung** (`http://localhost:5000/static/path_planning.html`): Intelligente Mähbild-Erstellung mit verschiedenen Algorithmen
 
-**Features:**
-- Automatische Weiterleitung von `index.html` zum Dashboard
-- Globale Sensorleiste auf allen Seiten
-- Responsive Design für alle Bildschirmgrößen
-- API-Integration für Live-Daten vom Sunray-Server (Port 5000)
+**GPS-Kartenerstellung Features:**
+- Sammeln von GPS-Grenzpunkten für Mähflächen
+- Automatisches Abschließen von Flächen ab 3 Punkten
+- Hinzufügen von Docking-Pfaden zur Ladestation
+- Einzeichnen von Hindernissen nach Kartenerstellung
+- Echtzeit-GPS-Simulation für Entwicklung
+- Speichern und Laden von Karten
+
+**Pfadplanung Features:**
+- Auswahl verschiedener Mähbild-Algorithmen (Parallel, Spiral, Zickzack, Zufällig)
+- Konfigurierbare Parameter (Schnittbreite, Überlappung, Geschwindigkeit, Richtung)
+- Echtzeit-Vorschau mit Statistiken (Pfadlänge, geschätzte Zeit, Abdeckung, Effizienz)
+- Speichern als Tasks oder Zonen
+- Laden auf Roboter-Hardware
+
+**Technische Features:**
+- Responsive Design für Desktop und mobile Geräte
+- Canvas-basierte Kartendarstellung
+- Modulare Navigation zwischen allen Bereichen
+- API-Integration für Datenübertragung
 
 ## Konfiguration
 
