@@ -21,7 +21,10 @@ sunray/
 │   ├── enhanced_escape_operations.py # 🆕 Enhanced Navigation System
 │   ├── integration_example.py # 🆕 Enhanced Sunray Controller
 │   ├── mock_hardware.py    # 🆕 Mock Hardware für Entwicklung
+│   ├── buzzer_feedback.py  # 🆕 Buzzer-Feedback-System
+│   ├── buzzer_example.py   # 🆕 Buzzer-Beispiele und Demo
 │   ├── ENHANCED_NAVIGATION_INTEGRATION.md # 🆕 Enhanced System Dokumentation
+│   ├── BUZZER_FEEDBACK_DOCUMENTATION.md # 🆕 Buzzer-System Dokumentation
 │   └── tests/              # Unit-Tests
 ├── src/                    # C++ Quellcode
 └── Pico/                   # Raspberry Pi Pico Code
@@ -46,6 +49,14 @@ sunray/
 - **MQTT Telemetrie**: Echtzeit-Datenübertragung für Monitoring
 - **Mock Hardware**: Entwicklung und Tests ohne echte Hardware möglich
 - **Konfigurierbare Parameter**: Anpassbare Algorithmus-Parameter
+
+### 🔊 Buzzer-Feedback-System (NEU!)
+- **Akustisches Feedback**: Töne für System-, Navigations- und Warnereignisse
+- **Event-basierte Steuerung**: Automatische Tonwiedergabe bei verschiedenen Ereignissen
+- **Enhanced System Integration**: Spezielle Töne für Enhanced Escape Operationen
+- **Ton-Sequenzen**: Komplexe Melodien für verschiedene Systemzustände
+- **Mock-Hardware-Unterstützung**: Entwicklung ohne echten Buzzer möglich
+- **Konfigurierbare Töne**: Anpassbare Frequenzen und Dauern
 
 ## Installation
 
@@ -89,6 +100,20 @@ python integration_example.py
 - HTTP API auf Port 8080 für Fernsteuerung
 - MQTT Telemetrie für Echtzeit-Monitoring
 - Automatischer Fallback auf Mock-Hardware in Entwicklungsumgebungen
+- Integriertes Buzzer-Feedback für alle Systemereignisse
+
+### Buzzer-Feedback-System testen
+
+```bash
+cd sunray/sunray_py
+python buzzer_example.py
+```
+
+**Buzzer-Features:**
+- System-Töne (Start, Bereit, Shutdown, Fehler)
+- Navigations-Töne (Start, Abschluss, Hindernis erkannt)
+- Warn-Töne (Batterie schwach, Motor überlastet, Neigungswarnung)
+- Enhanced System Töne (Escape Start/Erfolg/Fehler, Learning Updates)
 
 ### Tests ausführen
 
@@ -105,6 +130,7 @@ Das System verwendet eine JSON-basierte Konfiguration:
 - `config_enhanced.json`: Erweiterte Konfiguration für Enhanced Navigation System
 - `CONFIG_README.md`: Detaillierte Konfigurationsdokumentation
 - `ENHANCED_NAVIGATION_INTEGRATION.md`: Enhanced System Dokumentation
+- `BUZZER_FEEDBACK_DOCUMENTATION.md`: Buzzer-System Dokumentation
 
 ### Enhanced System Konfiguration
 
@@ -121,6 +147,13 @@ Das Enhanced Navigation System bietet erweiterte Konfigurationsmöglichkeiten:
       "odometry_weight": 0.2,
       "current_weight": 0.1
     }
+  },
+  "buzzer": {
+    "enabled": true,
+    "system_events": true,
+    "navigation_events": true,
+    "warning_events": true,
+    "enhanced_events": true
   }
 }
 ```
