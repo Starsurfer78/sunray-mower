@@ -127,7 +127,7 @@ Das Enhanced Navigation System bietet erweiterte Konfigurationsmöglichkeiten:
 
 ## Hardware
 
-- **Hauptcontroller**: Arduino Due/ESP32
+- **Hauptcontroller**: Raspberry Pi
 - **Motorcontroller**: Raspberry Pi Pico
 - **GPS**: RTK-fähiges Modul
 - **IMU**: 9-DOF Inertialsensor
