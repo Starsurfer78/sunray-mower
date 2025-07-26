@@ -1,0 +1,120 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sunray-mower"
+version = "1.0.0"
+description = "Sunray Autonomous Mowing Robot Control System"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+    {name = "Sunray Team", email = "info@sunray.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "flask>=2.0.0",
+    "pyserial>=3.5",
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "requests>=2.25.0",
+    "pynmea2>=1.18.0",
+    "RPi.GPIO>=0.7.0; platform_machine=='armv7l'",
+    "adafruit-circuitpython-bno055>=5.4.0",
+    "adafruit-circuitpython-gps>=3.9.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.0",
+    "black>=21.0",
+    "pylint>=2.0",
+    "mypy>=0.900",
+    "flake8>=3.8"
+]
+
+[project.urls]
+Homepage = "https://github.com/sunray-team/sunray-mower"
+Repository = "https://github.com/sunray-team/sunray-mower.git"
+Issues = "https://github.com/sunray-team/sunray-mower/issues"
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+# A regex preceded by ^/ will apply only to files and directories
+# in the root of the project.
+^/setup.py
+'''
+
+[tool.pylint.messages_control]
+disable = [
+    "C0103",  # Invalid name
+    "R0903",  # Too few public methods
+    "R0913",  # Too many arguments
+    "W0613",  # Unused argument
+]
+
+[tool.pylint.format]
+max-line-length = 88
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
+]
+python_paths = [
+    ".",
+    "examples",
+    "lift_detection"
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = false
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.coverage.run]
+source = [".", "examples", "lift_detection"]
+omit = [
+    "tests/*",
+    "setup.py",
+    "venv/*",
+    "*/__pycache__/*"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\bProtocol\):",
+    "@(abc\.)?abstractmethod",
+]

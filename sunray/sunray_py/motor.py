@@ -15,9 +15,12 @@ Version: 1.0
 """
 
 import time
-from typing import Tuple, Dict, Optional
+import math
+from typing import Tuple, Dict, Optional, List
 from pid import PID, VelocityPID
 from config import get_config
+from path_planner import PathPlanner, MowPattern
+from map import Point, Polygon
 
 class Motor:
     """
@@ -38,7 +41,7 @@ class Motor:
         motor.set_mow_state(True)  # Mähmotor einschalten
     """
     
-    def __init__(self, pico_comm=None):
+    def __init__(self, hardware_manager=None):
         """
         Initialisiert die Motor-Klasse mit konfigurierbaren Parametern.
         
@@ -49,17 +52,18 @@ class Motor:
         - Adaptive Geschwindigkeitsregelung
         
         Args:
-            pico_comm: Pico-Kommunikationsobjekt für Hardware-Befehle
-                      None für Simulation/Tests ohne Hardware
+            hardware_manager: HardwareManager-Instanz für Hardware-Kommunikation
+                            None für Simulation/Tests ohne Hardware
         
         Beispiel:
             # Mit Hardware-Kommunikation
-            motor = Motor(pico_communication)
+            from hardware_manager import get_hardware_manager
+            motor = Motor(get_hardware_manager())
             
             # Für Tests ohne Hardware
             motor = Motor()
         """
-        self.pico = pico_comm
+        self.hardware_manager = hardware_manager
         self.config = get_config()
         
         # PID-Regler für Geschwindigkeitsregelung aus Konfiguration
@@ -134,6 +138,33 @@ class Motor:
         self.adaptive_enabled = adaptive_config.get('enabled', True)
         self.adaptive_current_threshold_factor = adaptive_config.get('current_threshold_factor', 0.7)
         self.adaptive_min_speed_factor = adaptive_config.get('min_speed_factor', 0.3)
+        
+        # Pfadplanung und Navigation
+        self.path_planner = PathPlanner()
+        self.current_position = Point(0.0, 0.0)
+        self.target_waypoint = None
+        self.waypoint_tolerance = 0.2  # Meter - Entfernung für "Wegpunkt erreicht"
+        self.navigation_enabled = False
+        self.mow_zones = []  # Liste der zu mähenden Zonen
+        self.obstacles = []  # Liste der Hindernisse
+        
+        # Navigation PID-Regler
+        nav_config = self.config.get('navigation', {})
+        self.heading_pid = PID(
+            Kp=nav_config.get('heading_kp', 2.0),
+            Ki=nav_config.get('heading_ki', 0.1),
+            Kd=nav_config.get('heading_kd', 0.5)
+        )
+        self.distance_pid = PID(
+            Kp=nav_config.get('distance_kp', 1.0),
+            Ki=nav_config.get('distance_ki', 0.05),
+            Kd=nav_config.get('distance_kd', 0.2)
+        )
+        
+        # Navigationsparameter
+        self.max_linear_speed = nav_config.get('max_linear_speed', 0.8)  # m/s
+        self.max_angular_speed = nav_config.get('max_angular_speed', 1.5)  # rad/s
+        self.min_turn_radius = nav_config.get('min_turn_radius', 0.5)  # Meter
 
     def begin(self) -> None:
         """
@@ -223,16 +254,21 @@ class Motor:
         - PID-Regelung der Motorgeschwindigkeiten
         - Überwachung der Sicherheitsfunktionen
         - Adaptive Geschwindigkeitsanpassung
+        - Autonome Navigation (wenn aktiviert)
         
         Wird nur ausgeführt wenn Motoren aktiviert und keine Überlastung.
         
         Beispiel:
             # In der Hauptschleife
             while running:
-                motor.run()  # Regelung ausführen
+                motor.run()  # Regelung und Navigation ausführen
                 time.sleep(0.02)  # 50Hz
         """
         if self.enabled and not self.overload_detected:
+            # Autonome Navigation ausführen (falls aktiviert)
+            self.run_autonomous_navigation()
+            
+            # Standard Motorsteuerung
             self.control()
 
     def test(self) -> None:
@@ -291,8 +327,8 @@ class Motor:
             self.target_angular_speed = 0.0
             self.target_left_speed = 0.0
             self.target_right_speed = 0.0
-            if self.pico:
-                self.pico.send_command("AT+MOTOR,0,0,0")
+            if self.hardware_manager:
+                self.hardware_manager.send_motor_command(0, 0, 0)
         print(f"Motor: Antriebsmotoren {'aktiviert' if enable else 'deaktiviert'}")
 
     def set_linear_angular_speed(self, linear: float, angular: float, use_linear_ramp: bool = True) -> None:
@@ -435,11 +471,11 @@ class Motor:
             self.target_mow_speed = 0
             self.mow_enabled = False
         
-        if self.pico:
+        if self.hardware_manager:
             if include_mower:
-                self.pico.send_command("AT+MOTOR,0,0,0")
+                self.hardware_manager.send_motor_command(0, 0, 0)
             else:
-                self.pico.send_command("AT+MOTOR,0,0," + str(int(self.target_mow_speed)))
+                self.hardware_manager.send_motor_command(0, 0, int(self.target_mow_speed))
         
         self.reset_pids()
         print("Motor: Sofort-Stopp ausgeführt")
@@ -477,8 +513,8 @@ class Motor:
         pwm_right = max(-255, min(255, pwm_right))
         pwm_mow = max(0, min(255, pwm_mow))
         
-        if self.pico:
-            self.pico.send_command(f"AT+MOTOR,{pwm_left},{pwm_right},{pwm_mow}")
+        if self.hardware_manager:
+            self.hardware_manager.send_motor_command(pwm_left, pwm_right, pwm_mow)
 
     def control(self) -> None:
         """
@@ -887,8 +923,8 @@ class Motor:
             motor.test()  # Führt kompletten Motortest aus
         """
         print("Motor: Starte Motortest...")
-        if not self.pico:
-            print("Motor: Kein Pico verfügbar für Test")
+        if not self.hardware_manager:
+            print("Motor: Kein HardwareManager verfügbar für Test")
             return
         
         # Systematische Testsequenzen mit PWM-Werten
@@ -974,3 +1010,244 @@ class Motor:
         print(f"Rechts: {self.current_right_odom} Ticks")
         print(f"Mäher: {self.current_mow_odom} Ticks")
         print("=== ENDE MOTOR ANALYSE ===")
+    
+    # ===== PFADPLANUNG UND NAVIGATION =====
+    
+    def set_mow_zones(self, zones: List[Polygon]) -> None:
+        """
+        Setzt die zu mähenden Zonen für die Pfadplanung.
+        
+        Args:
+            zones: Liste von Polygon-Objekten, die die Mähzonen definieren
+        
+        Beispiel:
+            zone1 = Polygon([Point(0,0), Point(10,0), Point(10,10), Point(0,10)])
+            motor.set_mow_zones([zone1])
+        """
+        self.mow_zones = zones
+        self.path_planner.reset()  # Pfadplanung zurücksetzen
+        print(f"Motor: {len(zones)} Mähzonen gesetzt")
+    
+    def set_obstacles(self, obstacles: List[Polygon]) -> None:
+        """
+        Setzt die Hindernisse für die Pfadplanung.
+        
+        Args:
+            obstacles: Liste von Polygon-Objekten, die Hindernisse definieren
+        
+        Beispiel:
+            obstacle = Polygon([Point(5,5), Point(7,5), Point(7,7), Point(5,7)])
+            motor.set_obstacles([obstacle])
+        """
+        self.obstacles = obstacles
+        print(f"Motor: {len(obstacles)} Hindernisse gesetzt")
+    
+    def set_mow_pattern(self, pattern: MowPattern) -> None:
+        """
+        Setzt das Mähmuster für die Pfadplanung.
+        
+        Args:
+            pattern: Gewünschtes Mähmuster (LINES, SPIRAL, RANDOM, PERIMETER)
+        
+        Beispiel:
+            motor.set_mow_pattern(MowPattern.LINES)
+        """
+        self.path_planner.set_pattern(pattern)
+        print(f"Motor: Mähmuster auf {pattern.value} gesetzt")
+    
+    def set_line_spacing(self, spacing: float) -> None:
+        """
+        Setzt den Abstand zwischen Mählinien.
+        
+        Args:
+            spacing: Abstand in Metern (mindestens 0.1m)
+        
+        Beispiel:
+            motor.set_line_spacing(0.25)  # 25cm Abstand
+        """
+        self.path_planner.set_line_spacing(spacing)
+        print(f"Motor: Linienabstand auf {spacing:.2f}m gesetzt")
+    
+    def update_position(self, x: float, y: float) -> None:
+        """
+        Aktualisiert die aktuelle Position des Roboters.
+        
+        Args:
+            x: X-Koordinate in Metern
+            y: Y-Koordinate in Metern
+        
+        Beispiel:
+            motor.update_position(5.2, 3.8)
+        """
+        self.current_position = Point(x, y)
+    
+    def start_autonomous_mowing(self) -> bool:
+        """
+        Startet das autonome Mähen mit der aktuellen Konfiguration.
+        
+        Returns:
+            bool: True wenn erfolgreich gestartet, False bei Fehlern
+        
+        Voraussetzungen:
+        - Mähzonen müssen gesetzt sein
+        - Motoren müssen aktiviert sein
+        - Aktuelle Position muss bekannt sein
+        
+        Beispiel:
+            if motor.start_autonomous_mowing():
+                print("Autonomes Mähen gestartet")
+        """
+        if not self.mow_zones:
+            print("Motor: Keine Mähzonen definiert")
+            return False
+        
+        if not self.enabled:
+            print("Motor: Motoren nicht aktiviert")
+            return False
+        
+        self.navigation_enabled = True
+        self.target_waypoint = None
+        print("Motor: Autonomes Mähen gestartet")
+        return True
+    
+    def stop_autonomous_mowing(self) -> None:
+        """
+        Stoppt das autonome Mähen und hält den Roboter an.
+        
+        Beispiel:
+            motor.stop_autonomous_mowing()
+        """
+        self.navigation_enabled = False
+        self.target_waypoint = None
+        self.stop_immediately()
+        print("Motor: Autonomes Mähen gestoppt")
+    
+    def navigate_to_waypoint(self) -> bool:
+        """
+        Navigiert zum aktuellen Ziel-Wegpunkt.
+        
+        Returns:
+            bool: True wenn Wegpunkt erreicht, False wenn noch unterwegs
+        
+        Wird automatisch von run_autonomous_navigation() aufgerufen.
+        """
+        if not self.target_waypoint or not self.navigation_enabled:
+            return True
+        
+        # Entfernung und Richtung zum Wegpunkt berechnen
+        dx = self.target_waypoint.x - self.current_position.x
+        dy = self.target_waypoint.y - self.current_position.y
+        distance = math.sqrt(dx*dx + dy*dy)
+        
+        # Prüfen ob Wegpunkt erreicht
+        if distance < self.waypoint_tolerance:
+            print(f"Motor: Wegpunkt erreicht ({self.target_waypoint.x:.2f}, {self.target_waypoint.y:.2f})")
+            return True
+        
+        # Zielrichtung berechnen
+        target_heading = math.atan2(dy, dx)
+        
+        # Aktuelle Richtung aus Odometrie schätzen (vereinfacht)
+        current_speeds = self._calculate_speeds()
+        if abs(current_speeds['left']) > 0.01 or abs(current_speeds['right']) > 0.01:
+            # Richtung aus Geschwindigkeitsdifferenz schätzen
+            speed_diff = current_speeds['right'] - current_speeds['left']
+            angular_velocity = speed_diff / self.wheel_base
+            # Vereinfachte Richtungsschätzung - in echter Implementierung würde IMU verwendet
+            current_heading = 0.0  # Placeholder
+        else:
+            current_heading = 0.0
+        
+        # Richtungsfehler berechnen
+        heading_error = target_heading - current_heading
+        # Winkel normalisieren auf [-π, π]
+        while heading_error > math.pi:
+            heading_error -= 2 * math.pi
+        while heading_error < -math.pi:
+            heading_error += 2 * math.pi
+        
+        # PID-Regelung für Richtung und Geschwindigkeit
+        angular_output = self.heading_pid.compute(heading_error)
+        linear_output = self.distance_pid.compute(distance)
+        
+        # Geschwindigkeiten begrenzen
+        linear_speed = max(-self.max_linear_speed, min(self.max_linear_speed, linear_output))
+        angular_speed = max(-self.max_angular_speed, min(self.max_angular_speed, angular_output))
+        
+        # Bei großem Richtungsfehler nur drehen
+        if abs(heading_error) > math.pi/4:  # 45 Grad
+            linear_speed *= 0.3  # Langsamer fahren beim Drehen
+        
+        # Geschwindigkeiten setzen
+        self.set_linear_angular_speed(linear_speed, angular_speed)
+        
+        return False
+    
+    def run_autonomous_navigation(self) -> None:
+        """
+        Führt die autonome Navigation und Pfadplanung aus.
+        
+        Sollte regelmäßig in der Hauptschleife aufgerufen werden.
+        Verwaltet:
+        - Wegpunkt-Navigation
+        - Pfadplanung für nächste Ziele
+        - Fortschrittsüberwachung
+        
+        Beispiel:
+            # In der Hauptschleife
+            while running:
+                motor.run_autonomous_navigation()
+                time.sleep(0.1)
+        """
+        if not self.navigation_enabled or not self.mow_zones:
+            return
+        
+        # Aktuellen Wegpunkt abarbeiten
+        if self.target_waypoint:
+            waypoint_reached = self.navigate_to_waypoint()
+            if not waypoint_reached:
+                return  # Noch unterwegs zum aktuellen Wegpunkt
+        
+        # Nächsten Wegpunkt von Pfadplaner holen
+        next_waypoint = self.path_planner.get_next_waypoint(self.current_position, self.mow_zones)
+        
+        if next_waypoint:
+            self.target_waypoint = next_waypoint
+            print(f"Motor: Neuer Wegpunkt ({next_waypoint.x:.2f}, {next_waypoint.y:.2f})")
+        else:
+            # Alle Wegpunkte abgearbeitet - Mähen beendet
+            print("Motor: Mähen abgeschlossen - alle Zonen bearbeitet")
+            self.stop_autonomous_mowing()
+    
+    def get_navigation_status(self) -> Dict:
+        """
+        Gibt den aktuellen Navigationsstatus zurück.
+        
+        Returns:
+            Dict: Navigationsstatus mit Fortschritt und aktuellen Zielen
+        
+        Beispiel:
+            status = motor.get_navigation_status()
+            print(f"Fortschritt: {status['progress']:.1%}")
+        """
+        if not self.mow_zones:
+            return {
+                'navigation_enabled': self.navigation_enabled,
+                'progress': 0.0,
+                'current_zone': 0,
+                'zone_progress': 0,
+                'target_waypoint': None,
+                'current_position': (self.current_position.x, self.current_position.y)
+            }
+        
+        progress, current_zone, zone_progress = self.path_planner.get_progress(self.mow_zones)
+        
+        return {
+            'navigation_enabled': self.navigation_enabled,
+            'progress': progress,
+            'current_zone': current_zone,
+            'zone_progress': zone_progress,
+            'target_waypoint': (self.target_waypoint.x, self.target_waypoint.y) if self.target_waypoint else None,
+            'current_position': (self.current_position.x, self.current_position.y),
+            'total_zones': len(self.mow_zones)
+        }

@@ -29,7 +29,8 @@ from op import IdleOp, MowOp, EscapeForwardOp, SmartBumperEscapeOp
 from obstacle_detection import ObstacleDetector
 from path_planner import MowPattern
 from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEscapeOp
-from integration_example import EnhancedSunrayController
+from examples.integration_example import EnhancedSunrayController
+from smart_button_controller import SmartButtonController, ButtonAction, RobotState, get_smart_button_controller
 
 def select_operation(op_type: str, motor=None):
     """Operation-Factory basierend auf Zustand."""
@@ -45,35 +46,44 @@ def process_pico_data(line: str) -> dict:
     """
     Verarbeitung der ASCII-Sensordatenzeile vom Pico.
     Unterstützt sowohl AT+S: (Sensordaten) als auch S, (Summary mit Stromdaten).
+    Erweitert um Stop-Button-Verarbeitung.
     """
     if line.startswith("AT+S:"):
-        # Normale Sensordaten: AT+S:odom_right,odom_left,odom_mow,chg_voltage,,bumper,lift
+        # Normale Sensordaten: AT+S:odom_right,odom_left,odom_mow,chg_voltage,,bumper,lift,stopButton
         parts = line[5:].split(",")
-        return {
-            "odom_right": int(parts[0]),
-            "odom_left": int(parts[1]),
-            "odom_mow": int(parts[2]),
-            "chg_voltage": float(parts[3]),
-            "bumper": int(parts[5]),
-            "lift": int(parts[6]),
+        data = {
+            "odom_right": int(parts[0]) if len(parts) > 0 and parts[0] else 0,
+            "odom_left": int(parts[1]) if len(parts) > 1 and parts[1] else 0,
+            "odom_mow": int(parts[2]) if len(parts) > 2 and parts[2] else 0,
+            "chg_voltage": float(parts[3]) if len(parts) > 3 and parts[3] else 0.0,
+            "bumper": int(parts[5]) if len(parts) > 5 and parts[5] else 0,
+            "lift": int(parts[6]) if len(parts) > 6 and parts[6] else 0,
         }
+        # Stop-Button hinzufügen falls verfügbar
+        if len(parts) > 7 and parts[7]:
+            data["stopButton"] = int(parts[7])
+        return data
     elif line.startswith("S,"):
-        # Summary-Daten mit Stromdaten: S,batVoltageLP,chgVoltage,chgCurrentLP,lift,bumper,raining,motorOverload,mowCurrLP,motorLeftCurrLP,motorRightCurrLP,batteryTemp
+        # Summary-Daten mit Stromdaten: S,batVoltageLP,chgVoltage,chgCurrentLP,lift,bumper,raining,motorOverload,mowCurrLP,motorLeftCurrLP,motorRightCurrLP,batteryTemp,stopButton
         parts = line[2:].split(",")
         if len(parts) >= 11:
-            return {
-                "bat_voltage": float(parts[0]),
-                "chg_voltage": float(parts[1]),
-                "chg_current": float(parts[2]),
-                "lift": int(parts[3]),
-                "bumper": int(parts[4]),
-                "raining": int(parts[5]),
-                "motor_overload": int(parts[6]),
-                "mow_current": float(parts[7]),
-                "motor_left_current": float(parts[8]),
-                "motor_right_current": float(parts[9]),
-                "battery_temp": float(parts[10]),
+            data = {
+                "bat_voltage": float(parts[0]) if parts[0] else 0.0,
+                "chg_voltage": float(parts[1]) if parts[1] else 0.0,
+                "chg_current": float(parts[2]) if parts[2] else 0.0,
+                "lift": int(parts[3]) if parts[3] else 0,
+                "bumper": int(parts[4]) if parts[4] else 0,
+                "raining": int(parts[5]) if parts[5] else 0,
+                "motor_overload": int(parts[6]) if parts[6] else 0,
+                "mow_current": float(parts[7]) if parts[7] else 0.0,
+                "motor_left_current": float(parts[8]) if parts[8] else 0.0,
+                "motor_right_current": float(parts[9]) if parts[9] else 0.0,
+                "battery_temp": float(parts[10]) if parts[10] else 0.0,
             }
+            # Stop-Button hinzufügen falls verfügbar
+            if len(parts) > 11 and parts[11]:
+                data["stopButton"] = int(parts[11])
+            return data
     return {}
 
 def main():
@@ -106,7 +116,46 @@ def main():
         state_estimator=estimator
     )
     
+    # Smart Button Controller initialisieren
+    button_controller = get_smart_button_controller(
+        motor=motor,
+        state_estimator=estimator,
+        hardware_manager=hardware_manager
+    )
+    
+    # Button-Aktionen registrieren
+    def start_mowing_action():
+        """Startet den autonomen Mähvorgang."""
+        print("Button-Aktion: Starte Mähvorgang")
+        motor.start_autonomous_mowing()
+        logger.event(EventCode.SYSTEM_STARTED, "Mähvorgang über Button gestartet")
+    
+    def stop_mowing_action():
+        """Stoppt den aktuellen Mähvorgang."""
+        print("Button-Aktion: Stoppe Mähvorgang")
+        motor.stop_autonomous_mowing()
+        logger.event(EventCode.SYSTEM_STOPPED, "Mähvorgang über Button gestoppt")
+    
+    def go_home_action():
+        """Startet den Docking-Vorgang."""
+        print("Button-Aktion: Starte GoHome/Docking")
+        motor.go_home()
+        logger.event(EventCode.SYSTEM_STARTED, "Docking über Button gestartet")
+    
+    def emergency_stop_action():
+        """Führt einen Notfall-Stopp aus."""
+        print("Button-Aktion: Notfall-Stopp")
+        motor.emergency_stop()
+        logger.event(EventCode.EMERGENCY_STOP, "Notfall-Stopp über Button ausgelöst")
+    
+    # Callbacks registrieren
+    button_controller.set_action_callback(ButtonAction.START_MOW, start_mowing_action)
+    button_controller.set_action_callback(ButtonAction.STOP_MOW, stop_mowing_action)
+    button_controller.set_action_callback(ButtonAction.GO_HOME, go_home_action)
+    button_controller.set_action_callback(ButtonAction.EMERGENCY_STOP, emergency_stop_action)
+    
     print("Enhanced Escape System initialisiert - Intelligente Navigation aktiviert")
+    print("Smart Button Controller initialisiert - Erweiterte Button-Funktionen verfügbar")
 
     # Zustand aus Speicher laden
     last_state = storage.load()
@@ -133,10 +182,11 @@ def main():
     last_position_update = 0
     position_update_interval = 0.5  # Sekunden
 
-    # Motor-Instanz und Enhanced System an HTTP-Server übergeben
-    from http_server import set_motor_instance, set_enhanced_system
+    # Motor-Instanz, Enhanced System und Button Controller an HTTP-Server übergeben
+    from http_server import set_motor_instance, set_enhanced_system, set_button_controller
     set_motor_instance(motor)
     set_enhanced_system(enhanced_controller, sensor_fusion, learning_system)
+    set_button_controller(button_controller)
     
     # Web-API starten (Flask)
     threading.Thread(
@@ -191,6 +241,23 @@ def main():
             
             # Hinderniserkennung aktualisieren
             obstacle_detected = obstacle_detector.update(pico_data, imu_data)
+            
+            # Smart Button Controller aktualisieren
+            button_action = None
+            if pico_data:
+                # Roboterzustand für Button Controller aktualisieren
+                robot_state_data = {
+                    'op_type': current_op.name if current_op else 'idle',
+                    'battery_level': battery.get_percentage(),
+                    'is_docked': battery.is_charging(),
+                    'has_map': len(map_module.zones) > 0 if map_module.zones else False
+                }
+                button_controller.update_robot_state(robot_state_data)
+                
+                # Button-Eingaben verarbeiten
+                button_action = button_controller.update(pico_data)
+                if button_action:
+                    print(f"Button-Aktion ausgeführt: {button_action.value}")
             
             # Sicherheitsabschaltung bei zu starker Neigung oder Hindernis
             emergency_stop = False

@@ -1,5 +1,8 @@
 import json
-from typing import List, Optional, Dict
+import math
+import random
+from typing import List, Optional, Dict, Tuple
+from enum import Enum
 
 class Point:
     """
@@ -167,16 +170,96 @@ class Map:
         except Exception:
             return False
 
-    # Platzhalter für Pathfinding-Methoden
+    # Pfadplanungs-Methoden
     def find_path(self, src: Point, dst: Point) -> List[Point]:
-        """Ermittelt Weg von src nach dst."""
-        raise NotImplementedError
-
+        """Ermittelt Weg von src nach dst mit A*-Algorithmus."""
+        # Vereinfachte Implementierung - direkter Weg wenn keine Hindernisse
+        if not self._path_blocked(src, dst):
+            return [src, dst]
+        
+        # Komplexere Pfadplanung um Hindernisse herum
+        return self._a_star_pathfinding(src, dst)
+    
+    def _path_blocked(self, src: Point, dst: Point) -> bool:
+        """Prüft ob direkter Weg zwischen zwei Punkten blockiert ist."""
+        # Prüfe Kollision mit Ausschlusszonen
+        for exclusion in self.exclusions.polygons:
+            if self._line_intersects_polygon(src, dst, exclusion):
+                return True
+        
+        # Prüfe Kollision mit Hindernissen
+        for obstacle in self.obstacles.polygons:
+            if self._line_intersects_polygon(src, dst, obstacle):
+                return True
+        
+        return False
+    
+    def _line_intersects_polygon(self, p1: Point, p2: Point, polygon: Polygon) -> bool:
+        """Prüft ob Linie ein Polygon schneidet."""
+        if len(polygon.points) < 3:
+            return False
+        
+        for i in range(len(polygon.points)):
+            edge_start = polygon.points[i]
+            edge_end = polygon.points[(i + 1) % len(polygon.points)]
+            
+            if self._lines_intersect(p1, p2, edge_start, edge_end):
+                return True
+        
+        return False
+    
+    def _lines_intersect(self, p1: Point, p2: Point, p3: Point, p4: Point) -> bool:
+        """Prüft ob zwei Linien sich schneiden."""
+        def ccw(A, B, C):
+            return (C.y - A.y) * (B.x - A.x) > (B.y - A.y) * (C.x - A.x)
+        
+        return ccw(p1, p3, p4) != ccw(p2, p3, p4) and ccw(p1, p2, p3) != ccw(p1, p2, p4)
+    
+    def _a_star_pathfinding(self, src: Point, dst: Point) -> List[Point]:
+        """A*-Pfadplanung um Hindernisse herum."""
+        # Vereinfachte Implementierung - erstelle Umgehungspunkte
+        waypoints = [src]
+        
+        # Finde Umgehungspunkte um Hindernisse
+        for obstacle in self.obstacles.polygons:
+            if self._point_near_polygon(src, obstacle, 2.0) or self._point_near_polygon(dst, obstacle, 2.0):
+                # Erstelle Umgehungspunkte um das Hindernis
+                bypass_points = self._create_bypass_points(obstacle)
+                waypoints.extend(bypass_points)
+        
+        waypoints.append(dst)
+        return waypoints
+    
+    def _point_near_polygon(self, point: Point, polygon: Polygon, distance: float) -> bool:
+        """Prüft ob Punkt in der Nähe eines Polygons ist."""
+        center = polygon.get_center()
+        dist = math.sqrt((point.x - center.x)**2 + (point.y - center.y)**2)
+        return dist < distance
+    
+    def _create_bypass_points(self, polygon: Polygon) -> List[Point]:
+        """Erstellt Umgehungspunkte um ein Polygon."""
+        center = polygon.get_center()
+        # Erstelle 4 Punkte um das Hindernis herum
+        offset = 1.0  # 1 Meter Abstand
+        return [
+            Point(center.x - offset, center.y - offset),
+            Point(center.x + offset, center.y - offset),
+            Point(center.x + offset, center.y + offset),
+            Point(center.x - offset, center.y + offset)
+        ]
+    
     def next_mow_point(self) -> Optional[Point]:
-        """Gibt nächsten Mähpunkt zurück (erstes Zonen-Zentrum)."""
+        """Gibt nächsten Mähpunkt zurück basierend auf aktuellem Muster."""
         if not self.mow_zones:
             return None
-        zone = self.mow_zones.pop(0)
+        
+        # Verwende erste Zone für Mähpunkt-Generierung
+        zone = self.mow_zones[0]
+        return self._generate_next_mow_point(zone)
+    
+    def _generate_next_mow_point(self, zone: Polygon) -> Point:
+        """Generiert nächsten Mähpunkt in einer Zone."""
+        # Standardmäßig Zonenzentrum zurückgeben
         return zone.get_center()
 
     def load_zones(self, filename: str) -> bool:

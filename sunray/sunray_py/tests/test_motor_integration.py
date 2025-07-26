@@ -15,16 +15,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from motor import Motor
 from pid import PID, VelocityPID
-from pico_comm import PicoComm
+from hardware_manager import HardwareManager
 
 class TestMotorIntegration(unittest.TestCase):
     """Tests für Motor-Klasse Integration mit Pico-Daten."""
     
     def setUp(self):
         """Setup für jeden Test."""
-        # Mock Pico-Kommunikation
-        self.mock_pico = Mock(spec=PicoComm)
-        self.motor = Motor(pico_comm=self.mock_pico)
+        # Mock Hardware-Manager
+        self.mock_hw_manager = Mock(spec=HardwareManager)
+        self.motor = Motor(hardware_manager=self.mock_hw_manager)
         self.motor.begin()
     
     def test_motor_initialization(self):
@@ -94,7 +94,7 @@ class TestMotorIntegration(unittest.TestCase):
             self.motor.update(pico_data)
         
         # Prüfe ob stop_immediately aufgerufen wurde
-        self.mock_pico.send_command.assert_called()
+        self.mock_hw_manager.send_motor_command.assert_called()
         self.assertTrue(self.motor.overload_detected)
     
     def test_speed_control(self):
@@ -147,8 +147,8 @@ class TestMotorIntegration(unittest.TestCase):
         self.assertEqual(self.motor.target_mow_speed, 0)
         self.assertFalse(self.motor.mow_enabled)
         
-        # Prüfe Pico-Kommando
-        self.mock_pico.send_command.assert_called_with("AT+MOTOR,0,0,0")
+        # Prüfe Hardware-Manager-Kommando
+        self.mock_hw_manager.send_motor_command.assert_called_with(0, 0, 0)
     
     def test_pid_control(self):
         """Test PID-Regelung."""
@@ -182,8 +182,8 @@ class TestMotorIntegration(unittest.TestCase):
         # Führe Regelung aus
         self.motor.control()
         
-        # Prüfe ob Pico-Kommando gesendet wurde
-        self.mock_pico.send_command.assert_called()
+        # Prüfe ob Hardware-Manager-Kommando gesendet wurde
+        self.mock_hw_manager.send_motor_command.assert_called()
     
     def test_adaptive_speed(self):
         """Test adaptive Geschwindigkeitsanpassung."""

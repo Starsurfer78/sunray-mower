@@ -9,7 +9,7 @@
 - [x] Kursbestimmung (Euler/Yaw) mit `adafruit_bno08x` + `smbus2`
 
 ### Zonenbasierte Mählogik
-- [ ] Pfadplanung implementieren (linienbasiert, spiralförmig, zufällig)
+- [x] Pfadplanung implementieren (linienbasiert, spiralförmig, zufällig)
 - [ ] Rückkehr zur Ladestation bei niedrigem Akkustand vervollständigen
 - [ ] Zonenwechsel-Logik implementieren
 

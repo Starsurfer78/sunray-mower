@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import Config
 from motor import Motor
-from pico_comm import PicoComm
+from hardware_manager import HardwareManager
 
 class TestMotorConfig(unittest.TestCase):
     """Tests für Motor-Konfigurationsintegration."""
@@ -28,8 +28,8 @@ class TestMotorConfig(unittest.TestCase):
         self.temp_config_path = self.temp_config_file.name
         self.temp_config_file.close()
         
-        # Mock Pico-Kommunikation
-        self.mock_pico = Mock(spec=PicoComm)
+        # Mock Hardware-Manager
+        self.mock_hw_manager = Mock(spec=HardwareManager)
     
     def tearDown(self):
         """Cleanup nach jedem Test."""
@@ -108,7 +108,7 @@ class TestMotorConfig(unittest.TestCase):
             config = Config(self.temp_config_path)
             mock_get_config.return_value = config
             
-            motor = Motor(pico_comm=self.mock_pico)
+            motor = Motor(hardware_manager=self.mock_hw_manager)
             
             # Prüfe PID-Parameter
             self.assertEqual(motor.left_pid.Kp, 2.0)
@@ -171,7 +171,7 @@ class TestMotorConfig(unittest.TestCase):
             config.set('motor.mow.default_pwm', 180)
             mock_get_config.return_value = config
             
-            motor = Motor(pico_comm=self.mock_pico)
+            motor = Motor(hardware_manager=self.mock_hw_manager)
             
             # Mähmotor einschalten
             motor.set_mow_state(True)
@@ -191,7 +191,7 @@ class TestMotorConfig(unittest.TestCase):
             config.set('motor.limits.max_motor_current', 3.0)
             mock_get_config.return_value = config
             
-            motor = Motor(pico_comm=self.mock_pico)
+            motor = Motor(hardware_manager=self.mock_hw_manager)
             
             # Simuliere hohen Strom
             motor.current_left_current = 2.0
@@ -207,7 +207,7 @@ class TestMotorConfig(unittest.TestCase):
             config.set('motor.adaptive.enabled', False)
             with patch('motor.get_config') as mock_get_config2:
                 mock_get_config2.return_value = config
-                motor2 = Motor(pico_comm=self.mock_pico)
+                motor2 = Motor(hardware_manager=self.mock_hw_manager)
                 motor2.current_left_current = 2.0
                 motor2.current_right_current = 2.0
                 
