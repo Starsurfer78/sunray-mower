@@ -12,10 +12,16 @@ sunray/
 │   ├── motor.py            # Motorsteuerung
 │   ├── config.py           # Konfigurationsverwaltung
 │   ├── config_example.json # Beispielkonfiguration
+│   ├── config.json         # Basis-Konfiguration
+│   ├── config_enhanced.json # Enhanced System Konfiguration
 │   ├── gps_module.py       # GPS-Funktionalität
 │   ├── imu.py              # Inertialsensorik
 │   ├── battery.py          # Batterieüberwachung
 │   ├── obstacle_detection.py # Hinderniserkennung
+│   ├── enhanced_escape_operations.py # 🆕 Enhanced Navigation System
+│   ├── integration_example.py # 🆕 Enhanced Sunray Controller
+│   ├── mock_hardware.py    # 🆕 Mock Hardware für Entwicklung
+│   ├── ENHANCED_NAVIGATION_INTEGRATION.md # 🆕 Enhanced System Dokumentation
 │   └── tests/              # Unit-Tests
 ├── src/                    # C++ Quellcode
 └── Pico/                   # Raspberry Pi Pico Code
@@ -23,6 +29,7 @@ sunray/
 
 ## Features
 
+### Basis-Features
 - **Autonome Navigation**: GPS-basierte Pfadplanung und -verfolgung
 - **Motorsteuerung**: PID-geregelte Antriebsmotoren und Mähwerk
 - **Sicherheitssysteme**: Not-Aus, Hebe- und Neigungssensoren
@@ -30,6 +37,15 @@ sunray/
 - **Batteriemanagement**: Überwachung und automatisches Laden
 - **Web-Interface**: Fernsteuerung und Monitoring
 - **MQTT-Integration**: IoT-Konnektivität
+
+### 🚀 Enhanced Navigation System (NEU!)
+- **Adaptive Hindernisumgehung**: KI-basierte Escape-Strategien mit maschinellem Lernen
+- **Sensorfusion**: Intelligente Kombination von GPS, IMU, Odometrie und Stromdaten
+- **Lernfähiges System**: Automatische Verbesserung der Navigation durch Erfahrung
+- **HTTP API**: RESTful API für Fernsteuerung und Statusabfrage
+- **MQTT Telemetrie**: Echtzeit-Datenübertragung für Monitoring
+- **Mock Hardware**: Entwicklung und Tests ohne echte Hardware möglich
+- **Konfigurierbare Parameter**: Anpassbare Algorithmus-Parameter
 
 ## Installation
 
@@ -54,12 +70,25 @@ pip install -r requirements.txt
 
 ## Verwendung
 
-### Python-Version starten
+### Standard-Version starten
 
 ```bash
 cd sunray/sunray_py
 python main.py
 ```
+
+### Enhanced Navigation System starten
+
+```bash
+cd sunray/sunray_py
+python integration_example.py
+```
+
+**Features des Enhanced Systems:**
+- Adaptive Hindernisumgehung mit maschinellem Lernen
+- HTTP API auf Port 8080 für Fernsteuerung
+- MQTT Telemetrie für Echtzeit-Monitoring
+- Automatischer Fallback auf Mock-Hardware in Entwicklungsumgebungen
 
 ### Tests ausführen
 
@@ -72,8 +101,29 @@ python -m pytest tests/ -v
 Das System verwendet eine JSON-basierte Konfiguration:
 
 - `config_example.json`: Beispielkonfiguration mit Dokumentation
-- `config.json`: Aktive Konfiguration (wird automatisch erstellt)
+- `config.json`: Basis-Konfiguration für Standard-System
+- `config_enhanced.json`: Erweiterte Konfiguration für Enhanced Navigation System
 - `CONFIG_README.md`: Detaillierte Konfigurationsdokumentation
+- `ENHANCED_NAVIGATION_INTEGRATION.md`: Enhanced System Dokumentation
+
+### Enhanced System Konfiguration
+
+Das Enhanced Navigation System bietet erweiterte Konfigurationsmöglichkeiten:
+
+```json
+{
+  "enhanced_escape": {
+    "enabled": true,
+    "learning_enabled": true,
+    "sensor_fusion": {
+      "gps_weight": 0.4,
+      "imu_weight": 0.3,
+      "odometry_weight": 0.2,
+      "current_weight": 0.1
+    }
+  }
+}
+```
 
 ## Hardware
 
