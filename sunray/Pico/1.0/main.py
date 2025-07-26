@@ -92,6 +92,13 @@ stopButtonTimeout = time.ticks_ms()
 
 stopButton = 0
 
+stopButtonPressed = False
+stopButtonPressTime = 0
+lastBuzzerTime = 0
+buzzerBeepCount = 0
+LONG_PRESS_DURATION = 5000  # 5 Sekunden in Millisekunden
+BEEP_INTERVAL = 1000  # 1 Sekunde zwischen Pieptönen
+
 batVoltage = 0
 batVoltageLP = 0
 chgVoltage = 0
@@ -333,6 +340,10 @@ def readSensors() -> None:
     global bumper
     global stopButton
     global stopButtonTimeout
+    global stopButtonPressed
+    global stopButtonPressTime
+    global lastBuzzerTime
+    global buzzerBeepCount
 
     # battery voltage
     w = 0.99
@@ -362,11 +373,45 @@ def readSensors() -> None:
     bumperY = pinBumperY.value()
     bumper = int(bumperX or bumperY)
 
-    # stop button
-    if pinStopButton.value() == 1:
-        stopButton = 1
-    else:
-        stopButton = 0
+    # stop button with enhanced functionality
+    currentButtonState = pinStopButton.value()
+    currentTime = time.ticks_ms()
+    
+    # Button state change detection
+    if currentButtonState != stopButton:
+        if stopButton == 1 and currentButtonState == 0:  # Button pressed
+            stopButtonPressed = True
+            stopButtonPressTime = currentTime
+            lastBuzzerTime = currentTime
+            buzzerBeepCount = 0
+            # Immediate feedback beep
+            cmdBuzzer(1000, 100)  # 1kHz, 100ms
+            print("Button pressed - determining action...")
+        elif stopButton == 0 and currentButtonState == 1:  # Button released
+            if stopButtonPressed:
+                pressDuration = time.ticks_diff(currentTime, stopButtonPressTime)
+                handleButtonAction(pressDuration)
+                stopButtonPressed = False
+        
+        stopButton = currentButtonState
+    
+    # Handle long press feedback while button is held
+    if stopButtonPressed and stopButton == 0:
+        pressDuration = time.ticks_diff(currentTime, stopButtonPressTime)
+        
+        # Beep every second during long press
+        if (time.ticks_diff(currentTime, lastBuzzerTime) >= BEEP_INTERVAL and 
+            pressDuration >= 1000):  # After 1 second
+            buzzerBeepCount += 1
+            lastBuzzerTime = currentTime
+            
+            if buzzerBeepCount < 5:  # Up to 5 beeps
+                cmdBuzzer(1500, 200)  # 1.5kHz, 200ms
+                print(f"Long press detected - {buzzerBeepCount}/5 seconds")
+            elif buzzerBeepCount == 5:
+                # GoHome mode activated
+                cmdBuzzer(1800, 400)  # 1.8kHz, 400ms
+                print("GoHome mode activated - release button to confirm")
 
     # dummys
     batteryTemp = 20 
@@ -501,6 +546,28 @@ def cmdVersion() -> None:
     cmdAnswer(s)
 
 # request summary
+def handleButtonAction(pressDuration):
+    """Handle button action based on press duration."""
+    if pressDuration >= LONG_PRESS_DURATION:  # 5+ seconds = GoHome
+        cmdBuzzer(1800, 400)  # GoHome confirmation tone
+        print(f"BUTTON_ACTION:GO_HOME,{pressDuration}")
+    elif pressDuration <= 1000:  # Short press = Start/Stop
+        cmdBuzzer(800, 300)  # Start/Stop confirmation tone
+        print(f"BUTTON_ACTION:START_STOP,{pressDuration}")
+    else:  # Medium press (1-5 seconds) = Emergency Stop
+        cmdBuzzer(2500, 1000)  # Emergency stop tone
+        print(f"BUTTON_ACTION:EMERGENCY_STOP,{pressDuration}")
+
+def cmdBuzzer(frequency, duration):
+    """Control buzzer with specified frequency and duration."""
+    try:
+        # Simple buzzer control - can be enhanced based on hardware
+        print(f"BUZZER:{frequency}Hz,{duration}ms")
+        # TODO: Implement actual buzzer control based on hardware setup
+        # For now, just print the command
+    except Exception as e:
+        print(f"Buzzer error: {e}")
+
 def cmdSummary() -> None:
     global cmd
     global lcdRequestedMessage1
@@ -514,7 +581,7 @@ def cmdSummary() -> None:
             print(f"Sunray state: {lcdRequestedMessage1}")
     # Bumper als Bitmaske: Bit 0 = bumperX (links), Bit 1 = bumperY (rechts)
     bumper_bitmask = int(bumperX) | (int(bumperY) << 1)
-    s = f"S,{batVoltageLP},{chgVoltage},{chgCurrentLP},{int(lift)},{bumper_bitmask},{int(raining)},{int(motorOverload)},{mowCurrLP},{motorLeftCurrLP},{motorRightCurrLP},{batteryTemp}"
+    s = f"S,{batVoltageLP},{chgVoltage},{chgCurrentLP},{int(lift)},{bumper_bitmask},{int(raining)},{int(motorOverload)},{mowCurrLP},{motorLeftCurrLP},{motorRightCurrLP},{batteryTemp},{stopButton}"
     cmdAnswer(s)
 
 
