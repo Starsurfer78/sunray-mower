@@ -1,3 +1,20 @@
+"""
+Sunray Mähroboter - Python Implementation
+Based on the Ardumower Sunray project
+
+Original Sunray project:
+- Forum: https://forum.ardumower.de/
+- GitHub: https://github.com/Ardumower/Sunray
+- Copyright (c) 2021-2024 by Alexander Grau, Grau GmbH
+
+This implementation extends and adapts the original Sunray firmware
+for Python-based autonomous mower control with enhanced features.
+
+License: GPL-3.0 (same as original Sunray project)
+Author: [Ihr Name]
+Project: https://github.com/Starsurfer78/sunray-mower
+"""
+
 import time
 from typing import Dict
 
