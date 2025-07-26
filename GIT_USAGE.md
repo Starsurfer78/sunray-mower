@@ -93,7 +93,7 @@ git merge feature/neue-funktion
 
 ### Remote hinzufügen
 ```bash
-git remote add origin https://github.com/username/sunray-mower.git
+git remote add origin https://github.com/Starsurfer78/sunray-mower.git
 ```
 
 ### Zum Remote pushen
@@ -189,7 +189,7 @@ git clone E:\VibeCoding E:\VibeCoding-Backup
 ### Remote-Backup
 ```bash
 # Zu GitHub/GitLab pushen
-git remote add backup https://github.com/username/sunray-backup.git
+git remote add backup https://github.com/Starsurfer78/sunray-backup.git
 git push backup master
 ```
 
