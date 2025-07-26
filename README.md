@@ -1,6 +1,19 @@
 # Sunray Mähroboter Projekt
 
+> **Basierend auf dem ursprünglichen [Ardumower Sunray Projekt](https://github.com/Ardumower/Sunray)**  
+> Copyright (c) 2013-2020 by Alexander Grau, Grau GmbH  
+> Lizenziert unter GPL-3.0 - siehe [Forum](https://www.ardumower.de/forum/threads/ardumower-sunray.20426/) für Details
+
 Ein autonomer Mähroboter basierend auf dem Sunray-Framework mit Python-Implementierung.
+
+## 🏆 Projektattribution
+
+Dieses Projekt baut auf dem hervorragenden **Ardumower Sunray Projekt** auf, das von Alexander Grau und der Grau GmbH entwickelt wurde. Alle Dateien enthalten entsprechende Header-Kommentare, die das ursprüngliche Projekt würdigen und die GPL-3.0 Lizenz respektieren.
+
+- **Original Projekt**: [Ardumower Sunray auf GitHub](https://github.com/Ardumower/Sunray)
+- **Community Forum**: [Ardumower Forum](https://www.ardumower.de/forum/threads/ardumower-sunray.20426/)
+- **Lizenz**: GPL-3.0
+- **Copyright**: Alexander Grau, Grau GmbH (2013-2020)
 
 ## Projektstruktur
 
@@ -41,6 +54,20 @@ sunray/
 ├── src/                    # C++ Quellcode
 └── Pico/                   # Raspberry Pi Pico Code
 ```
+
+## 🚀 Neueste Updates
+
+### Version 2024.1 - Header Attribution Update
+- ✅ **Projektattribution**: Alle Dateien enthalten jetzt Header-Kommentare mit Verweis auf das ursprüngliche Ardumower Sunray Projekt
+- ✅ **Lizenz-Compliance**: GPL-3.0 Lizenzinformationen in allen Quelldateien
+- ✅ **Copyright-Würdigung**: Angemessene Anerkennung von Alexander Grau und Grau GmbH
+- ✅ **GitHub-Integration**: Vollständige Dokumentation und Repository-Updates
+- ✅ **15 Dateien aktualisiert**: Python, HTML, CSS und JavaScript Dateien
+
+### Commit-Historie
+- `📄 Add Ardumower Sunray project attribution headers to all files` - Vollständige Header-Attribution
+- Respektvolle Würdigung der ursprünglichen Entwickler
+- Einhaltung der Open-Source-Lizenzbestimmungen
 
 ## Features
 
@@ -226,17 +253,56 @@ Das Enhanced Navigation System bietet erweiterte Konfigurationsmöglichkeiten:
 - Integration-Tests für Hardware-Komponenten
 - Kontinuierliche Integration mit pytest
 
-## Beitragen
+## 🤝 Beitragen
 
-1. Fork das Repository
-2. Erstelle einen Feature-Branch
-3. Implementiere deine Änderungen
-4. Füge Tests hinzu
-5. Erstelle einen Pull Request
+### Entwicklungsrichtlinien
 
-## Lizenz
+1. **Fork das Repository** von [GitHub](https://github.com/Starsurfer78/sunray-mower)
+2. **Erstelle einen Feature-Branch** (`git checkout -b feature/amazing-feature`)
+3. **Implementiere deine Änderungen** unter Beachtung der Code-Stil-Richtlinien
+4. **Füge Tests hinzu** für neue Funktionalität
+5. **Commit deine Änderungen** (`git commit -m 'Add amazing feature'`)
+6. **Push zum Branch** (`git push origin feature/amazing-feature`)
+7. **Erstelle einen Pull Request**
 
-Dieses Projekt steht unter der MIT-Lizenz. Siehe LICENSE-Datei für Details.
+### Code-Qualität
+
+- **Header-Attribution**: Alle neuen Dateien müssen entsprechende Header-Kommentare enthalten
+- **Lizenz-Compliance**: Einhaltung der GPL-3.0 Lizenzbestimmungen
+- **Dokumentation**: Vollständige Dokumentation für neue Features
+- **Tests**: Unit-Tests für alle neuen Funktionen
+- **Code-Review**: Alle Änderungen durchlaufen ein Review-Verfahren
+
+### Repository-Informationen
+
+- **GitHub Repository**: [https://github.com/Starsurfer78/sunray-mower](https://github.com/Starsurfer78/sunray-mower)
+- **Hauptbranch**: `master`
+- **Issue-Tracking**: GitHub Issues für Bugs und Feature-Requests
+- **Continuous Integration**: Automatische Tests bei Pull Requests
+
+## 📋 Lizenz und Rechtliches
+
+Dieses Projekt basiert auf dem **Ardumower Sunray Projekt** und steht unter der **GPL-3.0 Lizenz**.
+
+- **Lizenz**: GNU General Public License v3.0
+- **Original Copyright**: Alexander Grau, Grau GmbH (2013-2020)
+- **Projekt-Erweiterungen**: Unter derselben GPL-3.0 Lizenz
+- **Quellcode-Verfügbarkeit**: Vollständig Open Source
+
+### Lizenz-Compliance
+
+Alle Dateien in diesem Projekt enthalten entsprechende Header-Kommentare mit:
+- Verweis auf das ursprüngliche Ardumower Sunray Projekt
+- Copyright-Hinweise für Alexander Grau und Grau GmbH
+- GPL-3.0 Lizenzinformationen
+- Links zu Forum und GitHub des Originalprojekts
+
+### Respektvolle Nutzung
+
+Bei der Nutzung dieses Projekts bitten wir um:
+- Anerkennung des ursprünglichen Ardumower Sunray Projekts
+- Einhaltung der GPL-3.0 Lizenzbestimmungen
+- Respekt vor der Arbeit von Alexander Grau und der Community
 
 ## Support
 
