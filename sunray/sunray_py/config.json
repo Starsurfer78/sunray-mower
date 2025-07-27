@@ -24,5 +24,27 @@
   "navigation": {
     "obstacle_detection_enabled": true,
     "gps_required": false
+  },
+  "battery": {
+    "voltage_thresholds": {
+      "go_home_if_below": 21.5,
+      "switch_off_if_below": 20.0,
+      "full_voltage": 28.7
+    },
+    "charging": {
+      "full_current": 0.2,
+      "timeout": 1800
+    },
+    "power_management": {
+      "switch_off_if_idle": 300,
+      "low_power_mode_enabled": true,
+      "voltage_monitoring_interval": 5.0
+    },
+    "safety": {
+      "temperature_monitoring": true,
+      "max_temperature": 60.0,
+      "min_temperature": -10.0,
+      "cell_balancing_enabled": false
+    }
   }
 }

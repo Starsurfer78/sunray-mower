@@ -17,6 +17,7 @@ Project: https://github.com/Starsurfer78/sunray-mower
 
 import time
 from typing import Dict
+from config import Config
 
 class Battery:
     """
@@ -27,22 +28,24 @@ class Battery:
       - run(battery_v, charge_v, charge_i): Verarbeitungsschritt mit aktuellen Spannungs- und Stromwerten.
       - Abfrage-Methoden: charger_connected(), is_docked(), should_go_home(), under_voltage(), is_charging_completed().
     """
-    def __init__(
-        self,
-        bat_go_home_if_below: float = 21.5,
-        bat_switch_off_if_below: float = 20.0,
-        bat_switch_off_if_idle: float = 300,
-        bat_full_current: float = 0.2,
-        bat_full_voltage: float = 28.7,
-        enable_charging_timeout: int = 1800,
-    ):
-        # Parameter
-        self.bat_go_home_if_below = bat_go_home_if_below
-        self.bat_switch_off_if_below = bat_switch_off_if_below
-        self.bat_switch_off_if_idle = bat_switch_off_if_idle
-        self.bat_full_current = bat_full_current
-        self.bat_full_voltage = bat_full_voltage
-        self.enable_charging_timeout = enable_charging_timeout
+    def __init__(self, config: Config = None):
+        # Lade Konfiguration
+        if config is None:
+            config = Config()
+        
+        # Batterie-Parameter aus Konfiguration laden
+        battery_config = config.get('battery', {})
+        voltage_thresholds = battery_config.get('voltage_thresholds', {})
+        charging_config = battery_config.get('charging', {})
+        power_management = battery_config.get('power_management', {})
+        
+        # Parameter mit Fallback-Werten
+        self.bat_go_home_if_below = voltage_thresholds.get('go_home_if_below', 21.5)
+        self.bat_switch_off_if_below = voltage_thresholds.get('switch_off_if_below', 20.0)
+        self.bat_full_voltage = voltage_thresholds.get('full_voltage', 28.7)
+        self.bat_full_current = charging_config.get('full_current', 0.2)
+        self.enable_charging_timeout = charging_config.get('timeout', 1800)
+        self.bat_switch_off_if_idle = power_management.get('switch_off_if_idle', 300)
 
         # Statusvariablen
         self.docked = False

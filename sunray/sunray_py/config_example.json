@@ -142,6 +142,57 @@
     "_obstacle_detection_description": "Aktiviert Hinderniserkennung (Ultraschall/Lidar)"
   },
   
+  "battery": {
+    "_description": "Batterie-Management und Ladeverhalten",
+    
+    "voltage_thresholds": {
+      "_description": "Spannungsgrenzwerte für verschiedene Batterieaktionen",
+      "go_home_if_below": 21.5,
+      "_go_home_if_below_description": "Spannung in Volt unter der Heimfahrt eingeleitet wird (20.0-23.0V)",
+      "_go_home_if_below_example": "Beispiel: 21.5V = ca. 20% Restkapazität bei 24V LiPo",
+      "switch_off_if_below": 20.0,
+      "_switch_off_if_below_description": "Kritische Spannung für Notabschaltung in Volt (18.0-21.0V)",
+      "_switch_off_if_below_warning": "WARNUNG: Zu niedrige Werte können Batterie dauerhaft schädigen",
+      "full_voltage": 28.7,
+      "_full_voltage_description": "Spannung bei vollgeladener Batterie in Volt (25.0-29.4V)",
+      "_full_voltage_example": "Beispiel: 28.7V = 7S LiPo voll geladen (4.1V pro Zelle)"
+    },
+    
+    "charging": {
+      "_description": "Ladeparameter und Sicherheitseinstellungen",
+      "full_current": 0.2,
+      "_full_current_description": "Ladestrom unter dem Batterie als voll gilt in Ampere (0.1-0.5A)",
+      "_full_current_example": "Beispiel: 0.2A = Erhaltungsladung, Batterie ist praktisch voll",
+      "timeout": 1800,
+      "_timeout_description": "Maximale Ladezeit in Sekunden (1200-3600s)",
+      "_timeout_example": "Beispiel: 1800s = 30 Minuten maximale Ladezeit",
+      "_timeout_safety": "Verhindert Überladung bei defektem Ladegerät"
+    },
+    
+    "power_management": {
+      "_description": "Energieverwaltung und Standby-Verhalten",
+      "switch_off_if_idle": 300,
+      "_switch_off_if_idle_description": "Zeit in Sekunden nach der sich System bei Inaktivität abschaltet (180-600s)",
+      "_switch_off_if_idle_example": "Beispiel: 300s = 5 Minuten Standby vor automatischer Abschaltung",
+      "low_power_mode_enabled": true,
+      "_low_power_mode_description": "Aktiviert Energiesparmodus bei niedriger Batterie",
+      "voltage_monitoring_interval": 5.0,
+      "_voltage_monitoring_interval_description": "Überwachungsintervall für Batteriespannung in Sekunden (1.0-10.0s)"
+    },
+    
+    "safety": {
+      "_description": "Batterie-Sicherheitsfunktionen",
+      "temperature_monitoring": true,
+      "_temperature_monitoring_description": "Überwacht Batterietemperatur (falls Sensor vorhanden)",
+      "max_temperature": 60.0,
+      "_max_temperature_description": "Maximale Batterietemperatur in °C (50-70°C)",
+      "min_temperature": -10.0,
+      "_min_temperature_description": "Minimale Betriebstemperatur in °C (-20 bis 0°C)",
+      "cell_balancing_enabled": false,
+      "_cell_balancing_description": "Aktiviert Zellbalancing (nur bei unterstützten BMS)"
+    }
+  },
+  
   "_configuration_notes": {
     "_description": "Wichtige Hinweise zur Konfiguration",
     "calibration": "Führe nach Änderungen an physikalischen Parametern eine Kalibrierfahrt durch",
