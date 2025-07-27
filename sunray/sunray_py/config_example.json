@@ -190,6 +190,23 @@
       "_min_temperature_description": "Minimale Betriebstemperatur in °C (-20 bis 0°C)",
       "cell_balancing_enabled": false,
       "_cell_balancing_description": "Aktiviert Zellbalancing (nur bei unterstützten BMS)"
+    },
+    
+    "filtering": {
+      "_description": "Spannungsfilterung zur Vermeidung von Fehlauslösungen durch kurze Spannungsabfälle",
+      "voltage_filter_enabled": true,
+      "_voltage_filter_enabled_description": "Aktiviert Filterung der Batteriespannung (empfohlen: true)",
+      "_voltage_filter_enabled_note": "Verhindert Go-Home/Switch-Off bei kurzen Spannungseinbrüchen",
+      "voltage_filter_time_constant": 5.0,
+      "_voltage_filter_time_constant_description": "Zeitkonstante für Tiefpass-Filter in Sekunden (2.0-10.0s)",
+      "_voltage_filter_time_constant_example": "Beispiel: 5.0s = sanfte Glättung, 2.0s = schnellere Reaktion",
+      "voltage_median_filter_size": 5,
+      "_voltage_median_filter_size_description": "Anzahl Werte für Median-Filter (3-10)",
+      "_voltage_median_filter_size_note": "Entfernt Ausreißer-Messwerte vor Tiefpass-Filterung",
+      "low_voltage_confirmation_time": 10.0,
+      "_low_voltage_confirmation_time_description": "Bestätigungszeit für niedrige Spannung in Sekunden (5.0-30.0s)",
+      "_low_voltage_confirmation_time_example": "Beispiel: 10.0s = Spannung muss 10s unter Schwelle sein",
+      "_low_voltage_confirmation_time_safety": "Verhindert Fehlauslösungen durch kurze Lastspitzen"
     }
   },
   

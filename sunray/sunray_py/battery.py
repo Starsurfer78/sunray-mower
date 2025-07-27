@@ -18,6 +18,8 @@ Project: https://github.com/Starsurfer78/sunray-mower
 import time
 from typing import Dict
 from config import Config
+from lowpass_filter import LowPassFilter
+from running_median import RunningMedian
 
 class Battery:
     """
@@ -38,6 +40,7 @@ class Battery:
         voltage_thresholds = battery_config.get('voltage_thresholds', {})
         charging_config = battery_config.get('charging', {})
         power_management = battery_config.get('power_management', {})
+        filtering_config = battery_config.get('filtering', {})
         
         # Parameter mit Fallback-Werten
         self.bat_go_home_if_below = voltage_thresholds.get('go_home_if_below', 21.5)
@@ -46,6 +49,20 @@ class Battery:
         self.bat_full_current = charging_config.get('full_current', 0.2)
         self.enable_charging_timeout = charging_config.get('timeout', 1800)
         self.bat_switch_off_if_idle = power_management.get('switch_off_if_idle', 300)
+        
+        # Filter-Parameter
+        self.voltage_filter_enabled = filtering_config.get('voltage_filter_enabled', True)
+        self.voltage_filter_time_constant = filtering_config.get('voltage_filter_time_constant', 5.0)
+        self.voltage_median_filter_size = filtering_config.get('voltage_median_filter_size', 5)
+        self.low_voltage_confirmation_time = filtering_config.get('low_voltage_confirmation_time', 10.0)
+        
+        # Filter initialisieren
+        self.voltage_lowpass_filter = LowPassFilter(self.voltage_filter_time_constant)
+        self.voltage_median_filter = RunningMedian(self.voltage_median_filter_size)
+        
+        # Spannungsüberwachung für bestätigte Niederspannung
+        self._low_voltage_start_time = None
+        self._switch_off_voltage_start_time = None
 
         # Statusvariablen
         self.docked = False
@@ -73,6 +90,11 @@ class Battery:
         self._next_enable_time = now
         self._charging_start = now
         self.switch_off_time = now + self.bat_switch_off_if_idle
+        
+        # Filter zurücksetzen
+        self.voltage_lowpass_filter.reset()
+        self._low_voltage_start_time = None
+        self._switch_off_voltage_start_time = None
 
     def enable_charging(self, flag: bool):
         """
@@ -92,18 +114,44 @@ class Battery:
     def should_go_home(self) -> bool:
         """
         True, wenn Batteriespannung unter Schwelle und Startup beendet.
+        Verwendet Bestätigungszeit um kurze Spannungsabfälle zu ignorieren.
         """
         if self._startup_phase < 2:
             return False
-        return self._last_battery_voltage < self.bat_go_home_if_below
+        
+        now = time.monotonic()
+        voltage_low = self._last_battery_voltage < self.bat_go_home_if_below
+        
+        if voltage_low:
+            if self._low_voltage_start_time is None:
+                self._low_voltage_start_time = now
+            # Bestätige niedrige Spannung nur nach Wartezeit
+            return (now - self._low_voltage_start_time) >= self.low_voltage_confirmation_time
+        else:
+            # Spannung ist wieder OK, Timer zurücksetzen
+            self._low_voltage_start_time = None
+            return False
 
     def under_voltage(self) -> bool:
         """
         True, wenn Batteriespannung unter Abschaltschwelle und Startup beendet.
+        Verwendet Bestätigungszeit um kurze Spannungsabfälle zu ignorieren.
         """
         if self._startup_phase < 2:
             return False
-        return self._last_battery_voltage < self.bat_switch_off_if_below
+        
+        now = time.monotonic()
+        voltage_critical = self._last_battery_voltage < self.bat_switch_off_if_below
+        
+        if voltage_critical:
+            if self._switch_off_voltage_start_time is None:
+                self._switch_off_voltage_start_time = now
+            # Bestätige kritische Spannung nur nach Wartezeit
+            return (now - self._switch_off_voltage_start_time) >= self.low_voltage_confirmation_time
+        else:
+            # Spannung ist wieder OK, Timer zurücksetzen
+            self._switch_off_voltage_start_time = None
+            return False
 
     def is_charging_completed(self) -> bool:
         return self._charging_completed
@@ -141,8 +189,19 @@ class Battery:
         # Intervall 50ms
         self._next_battery_time = now + 0.05
 
-        # Speichere letzte Batteriespannung
-        self._last_battery_voltage = battery_v
+        # Spannungsfilterung anwenden
+        if self.voltage_filter_enabled:
+            # Median-Filter für Ausreißer-Entfernung
+            self.voltage_median_filter.add(battery_v)
+            median_voltage = self.voltage_median_filter.median()
+            
+            # Tiefpass-Filter für Glättung
+            filtered_voltage = self.voltage_lowpass_filter(median_voltage)
+        else:
+            filtered_voltage = battery_v
+        
+        # Speichere letzte gefilterte Batteriespannung
+        self._last_battery_voltage = filtered_voltage
 
         # Charger Connected Erkennung (Threshold)
         self.charger_connected_state = (charge_v > 5.0)

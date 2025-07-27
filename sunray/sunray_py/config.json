@@ -45,6 +45,12 @@
       "max_temperature": 60.0,
       "min_temperature": -10.0,
       "cell_balancing_enabled": false
+    },
+    "filtering": {
+      "voltage_filter_enabled": true,
+      "voltage_filter_time_constant": 5.0,
+      "voltage_median_filter_size": 5,
+      "low_voltage_confirmation_time": 10.0
     }
   }
 }
