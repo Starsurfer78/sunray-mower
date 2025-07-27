@@ -29,9 +29,9 @@ Dieses Modul implementiert die komplette Motorsteuerung mit:
 import time
 import math
 from typing import Tuple, Dict, Optional, List
-from pid import PID, VelocityPID
+from utils.pid import PID, VelocityPID
 from config import get_config
-from path_planner import PathPlanner, MowPattern
+from navigation.path_planner import PathPlanner, MowPattern
 from map import Point, Polygon
 
 class Motor:
@@ -69,7 +69,7 @@ class Motor:
         
         Beispiel:
             # Mit Hardware-Kommunikation
-            from hardware_manager import get_hardware_manager
+            from hardware.hardware_manager import get_hardware_manager
             motor = Motor(get_hardware_manager())
             
             # Für Tests ohne Hardware

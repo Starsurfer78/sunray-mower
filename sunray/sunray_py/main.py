@@ -24,32 +24,32 @@ import threading
 
 # Hardware Imports mit Fallback
 try:
-    from imu import IMUSensor
+    from hardware.imu import IMUSensor
     from rtk_gps import RTKGPS
-    from hardware_manager import get_hardware_manager
+    from hardware.hardware_manager import get_hardware_manager
     HARDWARE_AVAILABLE = True
 except (ImportError, NotImplementedError):
     print("Hardware Module nicht verfügbar, verwende Mock Hardware")
     from mock_hardware import get_hardware_or_mock
     HARDWARE_AVAILABLE = False
-from battery import Battery
-from motor import Motor
+from hardware.battery import Battery
+from hardware.motor import Motor
 from map import Map
 from state_estimator import StateEstimator
 from events import Logger, EventCode
 from storage import Storage
-from mqtt_client import MQTTClient
+from communication.mqtt_client import MQTTClient
 from http_server import app
-from op import IdleOp, MowOp, EscapeForwardOp, SmartBumperEscapeOp
-from obstacle_detection import ObstacleDetector
-from path_planner import MowPattern
+from op import IdleOp, MowOp, EscapeForwardOp, SmartBumperEscapeOp, GpsWaitRtkOp, GpsErrorOp, ReturnToSafeZoneOp
+from safety.obstacle_detection import ObstacleDetector
+from navigation.path_planner import MowPattern
 from enhanced_escape_operations import SensorFusion, LearningSystem, AdaptiveEscapeOp
 from examples.integration_example import EnhancedSunrayController
 from smart_button_controller import SmartButtonController, ButtonAction, RobotState, get_smart_button_controller
-from gps_navigation import GPSNavigation
-from advanced_path_planner import AdvancedPathPlanner, PlanningStrategy
+from navigation.gps_navigation import GPSNavigation
+from navigation.advanced_path_planner import AdvancedPathPlanner, PlanningStrategy
 
-def select_operation(op_type: str, motor=None):
+def select_operation(op_type: str, motor=None, **params):
     """Operation-Factory basierend auf Zustand."""
     if op_type == "mow":
         return MowOp("mow", motor=motor)
@@ -57,6 +57,12 @@ def select_operation(op_type: str, motor=None):
         return DockOp("dock")
     if op_type == "escape_forward":
         return EscapeForwardOp("escape_forward", motor=motor)
+    if op_type == "gps_wait_rtk":
+        return GpsWaitRtkOp("gps_wait_rtk", motor=motor)
+    if op_type == "gps_error":
+        return GpsErrorOp("gps_error", motor=motor)
+    if op_type == "return_to_safe_zone":
+        return ReturnToSafeZoneOp("return_to_safe_zone", motor=motor)
     return IdleOp("idle")
 
 def process_pico_data(line: str) -> dict:
@@ -124,32 +130,23 @@ def main():
             with open('config.json', 'r') as f:
                 config = json.load(f)
                 
-                # RTK-GPS Konfiguration
-                rtk_config = config.get('rtk_gps', {})
-                rtk_mode = rtk_config.get('rtk_mode', 'auto')
-                ntrip_enabled = rtk_config.get('ntrip_enabled', False)
-                ntrip_fallback = rtk_config.get('ntrip_fallback', True)
-                rtk_port = rtk_config.get('port', '/dev/ttyUSB0')
-                rtk_baudrate = rtk_config.get('baudrate', 115200)
-                auto_configure = rtk_config.get('auto_configure', True)
-                
                 # Hardware-Konfiguration
                 hardware_config = config.get('hardware', {})
-                pico_config = hardware_config.get('pico_comm', {})
+                pico_config = hardware_config.get('pico_communication', {})
                 pico_port = pico_config.get('port', '/dev/ttyS0')
                 pico_baudrate = pico_config.get('baudrate', 115200)
                 
         except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
             print(f"Warnung: Konfigurationsdatei nicht gefunden oder fehlerhaft ({e}). Verwende Standardwerte.")
+            config = {}
         
-        # RTK-GPS initialisieren
-        gps = RTKGPS(
-            port=rtk_port, 
-            baudrate=rtk_baudrate, 
-            rtk_mode=rtk_mode,
-            enable_ntrip_fallback=ntrip_fallback,
-            auto_configure=auto_configure
-        )
+        # RTK-GPS initialisieren mit Konfiguration
+        gps = RTKGPS(config=config)
+        
+        # RTK-Konfiguration für Ausgabe laden
+        rtk_config = config.get('hardware', {}).get('rtk_gps', {})
+        rtk_mode = rtk_config.get('rtk_mode', 'auto')
+        ntrip_fallback = rtk_config.get('enable_ntrip_fallback', True)
         
         print(f"RTK-GPS: Modus '{rtk_mode}' - XBee RTK mit NTRIP-Fallback: {ntrip_fallback}")
         if rtk_mode == "ntrip":
@@ -169,7 +166,16 @@ def main():
     motor = Motor(hardware_manager=hardware_manager)
     map_module = Map()
     map_module.load_zones('zones.json')
-    estimator = StateEstimator()
+    # Konfiguration für StateEstimator laden
+    try:
+        import json
+        with open('config.json', 'r') as f:
+            config = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Warnung: Konfigurationsdatei nicht gefunden ({e}). Verwende Standardwerte.")
+        config = {}
+    
+    estimator = StateEstimator(config)
     storage = Storage('state.json')
     logger = Logger
     mqtt = MQTTClient()
@@ -429,10 +435,41 @@ def main():
                 motor.stop_immediately()  # Motoren über Motor-Klasse stoppen
                 hardware_manager.send_command("AT+STOP")  # Zusätzlicher Notfall-Stopp an Pico
             
-            # Roboterzustand berechnen
+            # Roboterzustand berechnen (inkl. GPS-Sicherheitsbewertung)
             robot_state = estimator.compute_robot_state(
                 imu_data, gps_data, pico_data
             )
+            
+            # GPS-Sicherheitsaktionen verarbeiten
+            gps_action = robot_state.get('gps_recommended_action')
+            gps_action_params = robot_state.get('gps_action_params', {})
+            
+            if gps_action and gps_action != 'continue':
+                print(f"GPS-Sicherheitsaktion: {gps_action}")
+                
+                # Aktuelle Operation stoppen falls nötig
+                if gps_action in ['stop_and_wait_rtk', 'return_to_safe_zone', 'rtk_wait_timeout_error']:
+                    if current_op.name not in ['idle', 'gps_wait_rtk', 'gps_error', 'return_to_safe_zone']:
+                        current_op.stop()
+                        
+                        # Neue GPS-Sicherheitsoperation starten
+                        if gps_action == 'stop_and_wait_rtk':
+                            current_op = GpsWaitRtkOp("gps_wait_rtk", motor=motor)
+                            current_op.start(gps_action_params)
+                        elif gps_action == 'return_to_safe_zone':
+                            current_op = ReturnToSafeZoneOp("return_to_safe_zone", motor=motor)
+                            current_op.start(gps_action_params)
+                        elif gps_action == 'rtk_wait_timeout_error':
+                            current_op = GpsErrorOp("gps_error", motor=motor)
+                            current_op.start(gps_action_params)
+                        
+                        print(f"GPS-Sicherheitsoperation gestartet: {current_op.name}")
+            
+            # Geschwindigkeitsfaktor aus GPS-Sicherheit anwenden
+            gps_speed_factor = robot_state.get('gps_speed_factor', 1.0)
+            if gps_speed_factor < 1.0:
+                motor.set_speed_factor(gps_speed_factor)
+                print(f"GPS-Sicherheit: Geschwindigkeit reduziert auf {gps_speed_factor*100:.0f}%")
             
             # Hindernisinfo zum Roboterzustand hinzufügen
             robot_state.update(obstacle_detector.get_status())
@@ -482,11 +519,13 @@ def main():
                 
                 last_position_update = current_time
 
-            desired_op = select_operation(robot_state.get("op_type", "idle"), motor=motor)
-            if type(desired_op) is not type(current_op):
-                current_op.stop()
-                current_op = desired_op
-                current_op.start(robot_state)
+            # Operation nur wechseln wenn keine GPS-Sicherheitsoperation aktiv
+            if current_op.name not in ['gps_wait_rtk', 'gps_error', 'return_to_safe_zone']:
+                desired_op = select_operation(robot_state.get("op_type", "idle"), motor=motor)
+                if type(desired_op) is not type(current_op):
+                    current_op.stop()
+                    current_op = desired_op
+                    current_op.start(robot_state)
 
             current_op.run()
 

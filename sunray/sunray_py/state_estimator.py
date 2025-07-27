@@ -1,6 +1,7 @@
 import time
 import math
 from typing import Dict, Optional, Tuple
+from safety.gps_safety_manager import GPSSafetyManager
 
 class KalmanFilter:
     """
@@ -44,7 +45,7 @@ class StateEstimator:
       reset_imu_timeout() -> None
       should_mow(gps_data, imu_data) -> bool
     """
-    def __init__(self):
+    def __init__(self, config: Dict = None):
         # Zustand
         self.state_x = 0.0
         self.state_y = 0.0
@@ -73,6 +74,9 @@ class StateEstimator:
         self.tilt_warning_active = False
         self.tilt_warning_start_time = 0.0
         self.tilt_warning_duration = 1.0  # Sekunden, bevor Abschaltung erfolgt
+        
+        # GPS-Sicherheitsmanager
+        self.gps_safety_manager = GPSSafetyManager(config or {})
 
     def start_imu(self, force: bool = False) -> bool:
         """
@@ -143,7 +147,7 @@ class StateEstimator:
     def compute_robot_state(self, imu_data: Dict, gps_data: Dict, pico_data: Dict) -> Dict:
         """
         Berechnet neuen Roboterzustand aus GPS, IMU und Odometrie und gibt Status-Dict zurück.
-        Implementiert Sensorfusion zwischen IMU und GPS.
+        Implementiert Sensorfusion zwischen IMU und GPS sowie GPS-Sicherheitslogik.
         """
         # IMU-Daten verarbeiten
         self.read_imu(imu_data)
@@ -164,15 +168,23 @@ class StateEstimator:
         # Geschwindigkeit aus GPS
         self.state_ground_speed = gps_data.get("speed", 0.0)
         
-        # Operation basierend auf GPS-Fix und Sicherheitsbedingungen
-        op_type = "mow" if self.should_mow(gps_data, imu_data) else "idle"
-        
         # State-Update für Position
         if x is not None and y is not None:
             self.state_x = x
             self.state_y = y
         
-        # Rückgabe des aktuellen Zustands
+        # GPS-Sicherheitsbewertung
+        current_position = (self.state_x, self.state_y) if x is not None and y is not None else None
+        gps_safety_result = self.gps_safety_manager.evaluate_gps_safety(
+            gps_data, current_position
+        )
+        
+        # Operation basierend auf GPS-Sicherheit und anderen Bedingungen
+        can_mow_basic = self.should_mow(gps_data, imu_data)
+        can_mow_gps = gps_safety_result.get('can_mow', False)
+        op_type = "mow" if (can_mow_basic and can_mow_gps) else "idle"
+        
+        # Rückgabe des erweiterten Zustands
         return {
             "x": self.state_x,
             "y": self.state_y,
@@ -181,7 +193,14 @@ class StateEstimator:
             "pitch": self.state_pitch,
             "speed": self.state_ground_speed,
             "tilt_warning": self.tilt_warning_active,
-            "op_type": op_type
+            "op_type": op_type,
+            # GPS-Sicherheitsinformationen
+            "gps_safety_level": gps_safety_result.get('safety_level'),
+            "gps_can_mow": can_mow_gps,
+            "gps_speed_factor": gps_safety_result.get('speed_factor', 1.0),
+            "gps_recommended_action": gps_safety_result.get('recommended_action'),
+            "gps_action_params": gps_safety_result.get('action_params', {}),
+            "rtk_wait_remaining": gps_safety_result.get('rtk_wait_remaining', 0.0)
         }
 
     def reset_imu_timeout(self) -> None:

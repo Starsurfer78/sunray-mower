@@ -44,18 +44,20 @@ class HardwareManager:
         hw_manager.register_data_callback('motor', motor.update)
     """
     
-    def __init__(self, port: str = '/dev/ttyS0', baudrate: int = 115200):
+    def __init__(self, port: str = None, baudrate: int = None):
         """
         Initialisiert den Hardware-Manager.
         
         Args:
-            port (str): Serieller Port für Pico-Kommunikation
-            baudrate (int): Baudrate für serielle Kommunikation
+            port (str): Serieller Port für Pico-Kommunikation (optional, aus Config wenn None)
+            baudrate (int): Baudrate für serielle Kommunikation (optional, aus Config wenn None)
         """
         self.config = get_config()
         self.pico = None
-        self.port = port
-        self.baudrate = baudrate
+        
+        # Port und Baudrate aus Konfiguration laden, falls nicht explizit angegeben
+        self.port = port if port is not None else self.config.get('hardware.pico_communication.port', '/dev/ttyS0')
+        self.baudrate = baudrate if baudrate is not None else self.config.get('hardware.pico_communication.baudrate', 115200)
         
         # Thread-Sicherheit
         self.lock = threading.Lock()
@@ -361,7 +363,7 @@ class HardwareManager:
 # Globale Hardware-Manager-Instanz (Singleton-Pattern)
 _hardware_manager_instance = None
 
-def get_hardware_manager(port='/dev/ttyS0', baudrate=115200):
+def get_hardware_manager(port=None, baudrate=None):
     """Gibt eine Singleton-Instanz des HardwareManagers zurück."""
     global _hardware_manager_instance
     if _hardware_manager_instance is None:
@@ -375,13 +377,13 @@ def shutdown_hardware_manager():
         _hardware_manager_instance.stop()
         _hardware_manager_instance = None
 
-def initialize_hardware(port: str = '/dev/ttyS0', baudrate: int = 115200) -> bool:
+def initialize_hardware(port: str = None, baudrate: int = None) -> bool:
     """
     Initialisiert die globale Hardware-Manager-Instanz.
     
     Args:
-        port (str): Serieller Port
-        baudrate (int): Baudrate
+        port (str): Serieller Port (optional, aus Config wenn None)
+        baudrate (int): Baudrate (optional, aus Config wenn None)
         
     Returns:
         bool: True wenn erfolgreich initialisiert

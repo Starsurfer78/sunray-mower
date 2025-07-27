@@ -1,4 +1,18 @@
 {
+  "hardware": {
+    "pico_communication": {
+      "port": "/dev/ttyS0",
+      "baudrate": 115200
+    },
+    "rtk_gps": {
+      "port": "/dev/ttyUSB0",
+      "baudrate": 115200,
+      "timeout": 1.0,
+      "rtk_mode": "auto",
+      "enable_ntrip_fallback": true,
+      "auto_configure": true
+    }
+  },
   "enhanced_escape": {
     "enabled": true,
     "learning_enabled": true,
@@ -24,6 +38,45 @@
   "navigation": {
     "obstacle_detection_enabled": true,
     "gps_required": false
+  },
+  "gps_safety": {
+    "accuracy_thresholds": {
+      "rtk_fixed_max": 0.05,
+      "rtk_float_max": 0.30,
+      "fix_3d_max": 0.50
+    },
+    "timeouts": {
+      "degradation_timeout": 3.0,
+      "rtk_wait_timeout": 300.0
+    },
+    "zones": {
+      "critical_zones": [
+        {
+          "name": "Straßennähe",
+          "polygon": [
+            {"x": 10.0, "y": 10.0},
+            {"x": 20.0, "y": 10.0},
+            {"x": 20.0, "y": 15.0},
+            {"x": 10.0, "y": 15.0}
+          ]
+        }
+      ],
+      "safe_zones": [
+        {
+          "name": "Hauptmähbereich",
+          "polygon": [
+            {"x": 0.0, "y": 0.0},
+            {"x": 30.0, "y": 0.0},
+            {"x": 30.0, "y": 25.0},
+            {"x": 0.0, "y": 25.0}
+          ]
+        }
+      ]
+    },
+    "speed_factors": {
+      "rtk_float_factor": 0.7,
+      "critical_zone_factor": 0.5
+    }
   },
   "battery": {
     "voltage_thresholds": {

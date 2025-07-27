@@ -38,12 +38,15 @@ class EnhancedSunrayController:
     """
     
     def __init__(self, config_file: str = 'config.json'):
+        # Konfiguration zuerst laden
+        self.config = self._load_config(config_file)
+        
         # Hardware Setup mit Fallback
         if HARDWARE_AVAILABLE:
             try:
                 self.motor = Motor()
                 self.imu = IMUSensor()
-                self.gps = RTKGPS()
+                self.gps = RTKGPS(config=self.config)
                 self.state_estimator = StateEstimator()
                 print("Echte Hardware initialisiert")
             except Exception as e:
@@ -62,9 +65,6 @@ class EnhancedSunrayController:
         # Buzzer Feedback System
         hardware_manager = getattr(self, 'hardware_manager', None)
         self.buzzer_feedback = get_buzzer_feedback(hardware_manager, enabled=True)
-        
-        # Konfiguration laden
-        self.config = self._load_config(config_file)
         self.enhanced_escape_enabled = self.config.get('enhanced_escape', {}).get('enabled', True)
         
         # Zustandsvariablen

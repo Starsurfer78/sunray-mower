@@ -25,19 +25,41 @@ class RTKGPS:
     2. NTRIP: Internet-basierte Korrekturdaten (fallback)
     """
 
-    def __init__(self, port: str = "/dev/ttyUSB0", baudrate: int = 115200, timeout: float = 1.0, 
-                 rtk_mode: str = "auto", enable_ntrip_fallback: bool = True, auto_configure: bool = True):
+    def __init__(self, port: str = None, baudrate: int = None, timeout: float = None, 
+                 rtk_mode: str = None, enable_ntrip_fallback: bool = None, auto_configure: bool = None, config: dict = None):
         """
         Initialisiert RTK-GPS für Ardusimple RTK Board.
         
         Args:
-            port: USB-Port des Ardusimple RTK Boards
-            baudrate: Baudrate (Standard 115200 für Ardusimple)
-            timeout: Serial timeout
-            rtk_mode: "auto", "xbee", "ntrip" - Korrekturdaten-Modus
-            enable_ntrip_fallback: NTRIP als Fallback wenn XBee nicht verfügbar
-            auto_configure: Automatische Konfiguration des Ardusimple Boards
+            port: USB-Port des Ardusimple RTK Boards (optional, aus config geladen)
+            baudrate: Baudrate (optional, aus config geladen)
+            timeout: Serial timeout (optional, aus config geladen)
+            rtk_mode: "auto", "xbee", "ntrip" - Korrekturdaten-Modus (optional, aus config geladen)
+            enable_ntrip_fallback: NTRIP als Fallback wenn XBee nicht verfügbar (optional, aus config geladen)
+            auto_configure: Automatische Konfiguration des Ardusimple Boards (optional, aus config geladen)
+            config: Konfigurationsdictionary mit hardware.rtk_gps Einstellungen
         """
+        # Lade Konfiguration
+        if config and 'hardware' in config and 'rtk_gps' in config['hardware']:
+            rtk_config = config['hardware']['rtk_gps']
+            port = port or rtk_config.get('port', '/dev/ttyUSB0')
+            baudrate = baudrate or rtk_config.get('baudrate', 115200)
+            timeout = timeout or rtk_config.get('timeout', 1.0)
+            rtk_mode = rtk_mode or rtk_config.get('rtk_mode', 'auto')
+            enable_ntrip_fallback = enable_ntrip_fallback if enable_ntrip_fallback is not None else rtk_config.get('enable_ntrip_fallback', True)
+            auto_configure = auto_configure if auto_configure is not None else rtk_config.get('auto_configure', True)
+        else:
+            # Fallback zu Standardwerten
+            port = port or '/dev/ttyUSB0'
+            baudrate = baudrate or 115200
+            timeout = timeout or 1.0
+            rtk_mode = rtk_mode or 'auto'
+            enable_ntrip_fallback = enable_ntrip_fallback if enable_ntrip_fallback is not None else True
+            auto_configure = auto_configure if auto_configure is not None else True
+        
+        print(f"RTK-GPS: Initialisiere mit Port: {port}, Baudrate: {baudrate}, Timeout: {timeout}s")
+        print(f"RTK-GPS: RTK-Modus: {rtk_mode}, NTRIP-Fallback: {enable_ntrip_fallback}, Auto-Config: {auto_configure}")
+        
         self.ser = serial.Serial(port, baudrate, timeout=timeout)
         self.ubx_reader = UBXReader(self.ser, protfilter=0, msgmode=UBXReader.MSGMODE_AUTO)
         self.ubx_writer = UBXWriter(self.ser, protfilter=0)

@@ -28,15 +28,16 @@ def test_rtk_configuration():
         import json
         with open('config.json', 'r') as f:
             config = json.load(f)
-            rtk_config = config.get('rtk_gps', {})
+            rtk_config = config.get('hardware', {}).get('rtk_gps', {})
             port = rtk_config.get('port', '/dev/ttyUSB0')
             baudrate = rtk_config.get('baudrate', 115200)
             rtk_mode = rtk_config.get('rtk_mode', 'auto')
-            ntrip_fallback = rtk_config.get('ntrip_fallback', True)
+            ntrip_fallback = rtk_config.get('enable_ntrip_fallback', True)
             auto_configure = rtk_config.get('auto_configure', True)
             print(f"✅ Konfiguration geladen: Port {port}, Baudrate {baudrate}")
     except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
         print(f"⚠️  Konfigurationsdatei nicht gefunden ({e}), verwende Standardwerte")
+        config = {}
         port = "/dev/ttyUSB0"
         baudrate = 115200
         rtk_mode = "auto"
@@ -46,13 +47,7 @@ def test_rtk_configuration():
     # RTK-GPS mit Konfiguration initialisieren
     print("2. Initialisiere RTK-GPS mit automatischer Konfiguration...")
     try:
-        gps = RTKGPS(
-            port=port,
-            baudrate=baudrate,
-            rtk_mode=rtk_mode,
-            enable_ntrip_fallback=ntrip_fallback,
-            auto_configure=auto_configure
-        )
+        gps = RTKGPS(config=config)
         print("✅ RTK-GPS erfolgreich initialisiert")
     except Exception as e:
         print(f"❌ Fehler bei RTK-GPS Initialisierung: {e}")

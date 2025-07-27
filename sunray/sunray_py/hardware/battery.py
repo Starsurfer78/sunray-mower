@@ -18,8 +18,8 @@ Project: https://github.com/Starsurfer78/sunray-mower
 import time
 from typing import Dict
 from config import Config
-from lowpass_filter import LowPassFilter
-from running_median import RunningMedian
+from utils.lowpass_filter import LowPassFilter
+from utils.running_median import RunningMedian
 
 class Battery:
     """

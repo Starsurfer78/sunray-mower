@@ -126,7 +126,7 @@ class EscapeForwardOp(Operation):
             self.motor.stop_immediately(include_mower=False)
         else:
             # Fallback: Direktes Hardware-Manager-Kommando
-            from hardware_manager import get_hardware_manager
+            from hardware.hardware_manager import get_hardware_manager
             self.hw_manager = get_hardware_manager()
             self.hw_manager.send_motor_command(0, 0, 0)
     
@@ -240,7 +240,7 @@ class SmartBumperEscapeOp(Operation):
             self.saved_mow_pwm = getattr(self.motor, 'target_mow_speed', 100)
             self.motor.stop_immediately(include_mower=False)
         else:
-            from hardware_manager import get_hardware_manager
+            from hardware.hardware_manager import get_hardware_manager
             self.hw_manager = get_hardware_manager()
             # Standard-Mähmotor-PWM verwenden
             self.saved_mow_pwm = 100
@@ -399,7 +399,121 @@ class GpsRebootRecoveryOp(Operation):
     def on_stop(self) -> None:
         pass
 
+class GpsWaitRtkOp(Operation):
+    """Wartet auf RTK-Fix-Wiederherstellung."""
+    
+    def __init__(self, name: str, motor=None):
+        super().__init__(name)
+        self.motor = motor
+    
+    def on_start(self, params: Dict[str, Any]) -> None:
+        self.start_time = time.time()
+        self.timeout = params.get('timeout', 300.0)  # 5 Minuten
+        self.check_interval = 5.0  # Alle 5 Sekunden prüfen
+        self.last_check = 0.0
+        
+        # Motor stoppen
+        if self.motor:
+            self.motor.stop_immediately(include_mower=True)
+        
+        from events import Logger, EventCode
+        Logger.event(EventCode.GPS_FIX_LOST, "Warte auf RTK-Fix-Wiederherstellung")
+        print("GpsWaitRtkOp: Warte auf RTK-Fix")
+    
+    def run(self) -> None:
+        current_time = time.time()
+        
+        # Timeout prüfen
+        if current_time - self.start_time >= self.timeout:
+            from events import Logger, EventCode
+            Logger.event(EventCode.GPS_FIX_LOST, "RTK-Warte-Timeout erreicht - ERROR: Kein GPS")
+            print("GpsWaitRtkOp: ERROR - Kein GPS verfügbar")
+            self.stop()
+            return
+        
+        # Periodische GPS-Prüfung
+        if current_time - self.last_check >= self.check_interval:
+            self.last_check = current_time
+            
+            # GPS-Status prüfen (würde normalerweise über StateEstimator kommen)
+            # Hier vereinfacht dargestellt
+            remaining = self.timeout - (current_time - self.start_time)
+            print(f"GpsWaitRtkOp: Warte auf RTK-Fix... ({remaining:.0f}s verbleibend)")
+    
+    def on_stop(self) -> None:
+        print("GpsWaitRtkOp: Operation beendet")
+
+class GpsErrorOp(Operation):
+    """Behandelt GPS-Fehler nach Timeout."""
+    
+    def __init__(self, name: str, motor=None):
+        super().__init__(name)
+        self.motor = motor
+    
+    def on_start(self, params: Dict[str, Any]) -> None:
+        # Motor komplett stoppen
+        if self.motor:
+            self.motor.stop_immediately(include_mower=True)
+        
+        # Fehlermeldung ausgeben
+        error_msg = "ERROR: Kein GPS - Roboter gestoppt"
+        from events import Logger, EventCode
+        Logger.event(EventCode.GPS_FIX_LOST, error_msg)
+        print(f"GpsErrorOp: {error_msg}")
+        
+        # Buzzer-Warnung (falls verfügbar)
+        try:
+            from buzzer_feedback import BuzzerFeedback
+            buzzer = BuzzerFeedback()
+            buzzer.error_pattern()
+        except Exception as e:
+            print(f"GpsErrorOp: Buzzer nicht verfügbar: {e}")
+    
+    def run(self) -> None:
+        # Roboter bleibt gestoppt bis manueller Eingriff
+        pass
+    
+    def on_stop(self) -> None:
+        print("GpsErrorOp: Manueller Reset erforderlich")
+
+class ReturnToSafeZoneOp(Operation):
+    """Kehrt zur letzten sicheren Position zurück."""
+    
+    def __init__(self, name: str, motor=None):
+        super().__init__(name)
+        self.motor = motor
+    
+    def on_start(self, params: Dict[str, Any]) -> None:
+        self.target_position = params.get('safe_position')
+        self.tolerance = params.get('tolerance', 1.0)
+        self.max_speed = 0.3  # Reduzierte Geschwindigkeit
+        
+        if not self.target_position:
+            print("ReturnToSafeZoneOp: Keine sichere Position verfügbar")
+            self.stop()
+            return
+        
+        from events import Logger, EventCode
+        Logger.event(EventCode.GPS_FIX_LOST, "Rückkehr zur sicheren Zone")
+        print(f"ReturnToSafeZoneOp: Kehre zu sicherer Position zurück: {self.target_position}")
+    
+    def run(self) -> None:
+        if not self.target_position:
+            self.stop()
+            return
+        
+        # Hier würde die Navigation zur sicheren Position implementiert
+        # Vereinfacht dargestellt
+        print("ReturnToSafeZoneOp: Navigiere zur sicheren Zone...")
+        
+        # Wenn Ziel erreicht, Operation beenden
+        # (In echter Implementierung würde hier die Entfernungsberechnung stehen)
+    
+    def on_stop(self) -> None:
+        print("ReturnToSafeZoneOp: Sichere Zone erreicht")
+
 class GpsWaitFixOp(Operation):
+    """Legacy Operation - wird durch GpsWaitRtkOp ersetzt."""
     def on_start(self, params: Dict[str, Any]) -> None:
         pass
     def run(self) -> None:
@@ -408,6 +522,7 @@ class GpsWaitFixOp(Operation):
         pass
 
 class GpsWaitFloatOp(Operation):
+    """Legacy Operation - wird durch GpsWaitRtkOp ersetzt."""
     def on_start(self, params: Dict[str, Any]) -> None:
         pass
     def run(self) -> None:
